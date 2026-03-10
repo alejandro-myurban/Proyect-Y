@@ -1,7 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Skull } from 'lucide-react';
 import { useState } from 'react';
-import './Navbar.css';
 
 function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
@@ -19,37 +18,74 @@ function Navbar() {
     ];
 
     return (
-        <nav className="navbar">
-            <div className="navbar-container container">
-                <Link to="/" className="navbar-logo">
-                    <Skull size={32} className="logo-icon" color="#3db518" />
-                    <span className="logo-text">Spanish<span className="text-primary">Mafia</span></span>
+        <nav className="bg-[rgba(10,10,12,0.95)] backdrop-blur-[10px] h-20 flex justify-center items-center text-[1.1rem] font-['Changa_One'] fixed top-0 w-full z-[1000] border-b border-[#2a2a33]">
+            <div className="flex justify-between items-center w-full max-w-[1440px] mx-auto px-8">
+                <Link to="/" className="flex items-center no-underline text-[1.5rem] cursor-pointer">
+                    <Skull size={32} color="#3db518" />
+                    <span className="ml-2 text-white font-medium tracking-[2px]">
+                        Spanish<span className="text-[#86b518]">Mafia</span>
+                    </span>
                 </Link>
 
-                <div className="menu-icon" onClick={toggleMenu}>
+                {/* Hamburger — solo mobile */}
+                <button
+                    className="hidden max-[960px]:block absolute top-0 right-0 translate-x-[-100%] translate-y-[60%] cursor-pointer bg-transparent border-none"
+                    onClick={toggleMenu}
+                >
                     {isOpen ? <X size={28} color="#3db518" /> : <Menu size={28} color="#3db518" />}
-                </div>
+                </button>
 
-                <ul className={`nav-menu ${isOpen ? 'active' : ''}`}>
+                {/* Nav links */}
+                <ul className={`
+                    flex list-none text-center items-center
+                    max-[960px]:flex-col max-[960px]:w-full max-[960px]:h-[calc(100vh-80px)]
+                    max-[960px]:absolute max-[960px]:top-20 max-[960px]:opacity-100
+                    max-[960px]:bg-[rgba(10,10,12,0.98)] max-[960px]:backdrop-blur-[10px]
+                    max-[960px]:border-t max-[960px]:border-[#2a2a33]
+                    transition-all duration-[0.4s] ease
+                    ${isOpen ? 'max-[960px]:left-0 max-[960px]:z-[1]' : 'max-[960px]:left-[-100%]'}
+                `}>
                     {navLinks.map((link) => (
-                        <li className="nav-item" key={link.path}>
+                        <li
+                            key={link.path}
+                            className="h-20 max-[960px]:w-full max-[960px]:flex max-[960px]:justify-center max-[960px]:border-b max-[960px]:border-[#2a2a33]"
+                        >
                             <Link
                                 to={link.path}
-                                className={`nav-links ${location.pathname === link.path ? 'active' : ''}`}
+                                className={`
+                                    flex items-center no-underline px-6 h-full
+                                    uppercase text-[0.9rem] tracking-[1px] relative
+                                    max-[960px]:text-center max-[960px]:p-8 max-[960px]:w-full max-[960px]:flex max-[960px]:justify-center
+                                    after:content-[''] after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2
+                                    after:w-0 after:h-[2px] after:bg-[#86b518] after:transition-all after:duration-300
+                                    after:shadow-[0_-2px_10px_rgba(61,181,24,0.4)]
+                                    hover:after:w-full hover:text-[#86b518] hover:drop-shadow-[0_0_10px_rgba(61,181,24,0.4)]
+                                    ${location.pathname === link.path
+                                        ? 'text-[#86b518] drop-shadow-[0_0_10px_rgba(61,181,24,0.4)] after:!w-full'
+                                        : 'text-[#e2e2e2]'
+                                    }
+                                `}
                                 onClick={() => setIsOpen(false)}
                             >
                                 {link.label}
                             </Link>
                         </li>
                     ))}
-                    <li className="nav-item mobile-only">
-                        <Link to="/calendar" className="btn btn-primary nav-btn" onClick={() => setIsOpen(false)}>
+
+                    {/* Botón mobile "Unirse a Raid" */}
+                    <li className="hidden max-[960px]:flex justify-center items-center border-none h-auto">
+                        <Link
+                            to="/calendar"
+                            className="btn btn-primary py-4 px-8 w-4/5 mt-8 text-center"
+                            onClick={() => setIsOpen(false)}
+                        >
                             Unirse a Raid
                         </Link>
                     </li>
                 </ul>
 
-                <div className="nav-desktop-btn">
+                {/* Botón desktop */}
+                <div className="flex items-center max-[960px]:hidden">
                     <Link to="/calendar" className="btn btn-primary">Unirse a Raid</Link>
                 </div>
             </div>

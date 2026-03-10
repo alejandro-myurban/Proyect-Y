@@ -4,13 +4,12 @@ import Home from './pages/Home';
 import Guides from './pages/Guides';
 import LootSystem from './pages/LootSystem';
 import Calendar from './pages/Calendar';
-import './App.css';
 
 function App() {
   return (
     <>
       <Navbar />
-      <div className="app-content">
+      <div className="min-h-screen pt-10">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/guides" element={<Guides />} />

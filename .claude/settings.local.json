@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.wowhead.com)",
+      "Bash(cd \"C:/Users/User/Proyect-Y\" && node -e \"\nimport\\('./src/data/tbcRaidItems.js'\\).then\\(m => {\n  console.log\\('TBC_RAIDS:', m.TBC_RAIDS\\);\n  console.log\\('Total items:', m.TBC_RAID_ITEMS.length\\);\n  const byRaid = {};\n  for \\(const item of m.TBC_RAID_ITEMS\\) {\n    byRaid[item.raid] = \\(byRaid[item.raid] || 0\\) + 1;\n  }\n  console.log\\('Por raid:', byRaid\\);\n  const miscelaneo = m.TBC_RAID_ITEMS.filter\\(i => i.slot === 'Miscelánea'\\);\n  console.log\\('Miscelánea items:', miscelaneo.length, miscelaneo.map\\(i => i.name + ' \\(' + i.boss + '\\)'\\).slice\\(0,10\\)\\);\n}\\).catch\\(e => console.error\\(e\\)\\);\n\" --input-type=module 2>&1ç)"
+    ]
+  }
+}
