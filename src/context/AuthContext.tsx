@@ -1,10 +1,20 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
+import { User, AuthResponse, AuthTokenResponsePassword } from '@supabase/supabase-js';
 
-const AuthContext = createContext({});
+interface AuthContextType {
+    user: User | null;
+    loading: boolean;
+    signUp: (data: any) => Promise<AuthResponse>;
+    signIn: (data: any) => Promise<AuthTokenResponsePassword>;
+    signInWithGoogle: () => Promise<any>;
+    signOut: () => Promise<any>;
+}
 
-export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+    const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -26,8 +36,8 @@ export const AuthProvider = ({ children }) => {
         return () => subscription.unsubscribe();
     }, []);
 
-    const signUp = (data) => supabase.auth.signUp(data);
-    const signIn = (data) => supabase.auth.signInWithPassword(data);
+    const signUp = (data: any) => supabase.auth.signUp(data);
+    const signIn = (data: any) => supabase.auth.signInWithPassword(data);
     const signInWithGoogle = () => supabase.auth.signInWithOAuth({ provider: 'google' });
     const signOut = () => supabase.auth.signOut();
 
@@ -38,4 +48,10 @@ export const AuthProvider = ({ children }) => {
     );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (context === undefined) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
+};

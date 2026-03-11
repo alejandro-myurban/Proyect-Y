@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, JSX } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, UserPlus, Trash2, CheckCircle, Shield, Swords, Heart, History, Package, PlusCircle, X, Trophy } from 'lucide-react';
 import ItemSelector from '../components/ItemSelector';
@@ -10,12 +10,37 @@ const CLASSES = [
     'Chamán', 'Mago', 'Brujo', 'Monje', 'Druida', 'Cazador de Demonios', 'Evocador'
 ];
 
+export interface Signup {
+    name: string;
+    class: string;
+    role: string;
+}
+
+export interface LootEntry {
+    id: string;
+    item_id: number;
+    item_name: string;
+    quality: string;
+    slot: string;
+    winner: string;
+    boss: string;
+    icon: string;
+}
+
+export interface Raid {
+    id: string;
+    title: string;
+    date: string;
+    signups: Signup[];
+    loot: LootEntry[];
+}
+
 function Calendar() {
     const { user } = useAuth();
     const [isAdmin, setIsAdmin] = useState(false);
-    const [raids, setRaids] = useState([]);
+    const [raids, setRaids] = useState<Raid[]>([]);
     const [loading, setLoading] = useState(true);
-    const [groupingMode, setGroupingMode] = useState('role');
+    const [groupingMode, setGroupingMode] = useState<'role' | 'class'>('role');
     const [charName, setCharName] = useState('');
     const [charClass, setCharClass] = useState(CLASSES[0]);
     const [charRole, setCharRole] = useState('DPS');
@@ -47,14 +72,14 @@ function Calendar() {
 
             if (error) throw error;
             setRaids(data || []);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error fetching raids:', err.message);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleCreateRaid = async (e) => {
+    const handleCreateRaid = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newRaidTitle || !newRaidDate) return;
 
@@ -66,12 +91,12 @@ function Calendar() {
             if (error) throw error;
             setNewRaidTitle('');
             setNewRaidDate('');
-        } catch (err) {
+        } catch (err: any) {
             alert('Error creando la raid: ' + err.message);
         }
     };
 
-    const handleSignUp = async (raidId) => {
+    const handleSignUp = async (raidId: string) => {
         if (!user) { alert("Debes iniciar sesión para apuntarte a raids."); return; }
         if (!charName) { alert("¡Por favor, introduce el nombre de tu personaje para apuntarte!"); return; }
 
@@ -87,22 +112,22 @@ function Calendar() {
                     throw error;
                 }
             }
-        } catch (err) {
+        } catch (err: any) {
             alert('Error al apuntarse: ' + err.message);
         }
     };
 
-    const handleDeleteRaid = async (id) => {
+    const handleDeleteRaid = async (id: string) => {
         if (!confirm('¿Seguro que quieres borrar este evento?')) return;
         try {
             const { error } = await supabase.from('raids').delete().eq('id', id);
             if (error) throw error;
-        } catch (err) {
+        } catch (err: any) {
             alert('Error eliminando la raid: ' + err.message);
         }
     };
 
-    const handleAddLoot = async (raidId, entry) => {
+    const handleAddLoot = async (raidId: string, entry: any) => {
         try {
             const { error } = await supabase
                 .from('loot_history')
@@ -118,12 +143,12 @@ function Calendar() {
                 }]);
 
             if (error) throw error;
-        } catch (err) {
+        } catch (err: any) {
             alert('Error añadiendo drop: ' + err.message);
         }
     };
 
-    const handleRemoveLoot = async (raidId, lootId) => {
+    const handleRemoveLoot = async (raidId: string, lootId: string) => {
         try {
             const { error } = await supabase
                 .from('loot_history')
@@ -131,25 +156,25 @@ function Calendar() {
                 .eq('id', lootId);
 
             if (error) throw error;
-        } catch (err) {
+        } catch (err: any) {
             alert('Error eliminando drop: ' + err.message);
         }
     };
 
-    const getRoleIcon = (role) => {
+    const getRoleIcon = (role: string) => {
         if (role === 'Tanque') return <Shield size={16} className="text-[#86b518]" />;
         if (role === 'Sanador') return <Heart size={16} className="text-[#86b518]" />;
         if (role === 'DPS') return <Swords size={16} color="#ff2a2a" />;
         return null;
     };
 
-    const getGroupedByClass = (signups) => {
-        const groups = {};
+    const getGroupedByClass = (signups: Signup[]) => {
+        const groups: { [key: string]: Signup[] } = {};
         signups.forEach(s => { if (!groups[s.class]) groups[s.class] = []; groups[s.class].push(s); });
         return groups;
     };
 
-    const slugClass = (name) => name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ /g, '-');
+    const slugClass = (name: string) => name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ /g, '-');
 
     return (
         <div className="pt-20 max-w-[1440px] mx-auto px-8">
@@ -272,7 +297,15 @@ function Calendar() {
 }
 
 /* ══ LootEntryModal ══════════════════════════════════════════════════════════ */
-function LootEntryModal({ item, roster, onConfirm, onBack, onClose }) {
+interface LootEntryModalProps {
+    item: any;
+    roster: Signup[];
+    onConfirm: (entry: any) => void;
+    onBack: () => void;
+    onClose: () => void;
+}
+
+function LootEntryModal({ item, roster, onConfirm, onBack, onClose }: LootEntryModalProps) {
     const [winner, setWinner] = useState(roster[0]?.name ?? '');
     const [customWinner, setCustomWinner] = useState('');
     const [useCustom, setUseCustom] = useState(roster.length === 0);
@@ -284,7 +317,7 @@ function LootEntryModal({ item, roster, onConfirm, onBack, onClose }) {
         onConfirm({ itemId: item.id, itemName: item.name, quality: item.quality, slot: item.slot, boss: item.boss, icon: item.icon, winner: resolvedWinner.trim() });
     };
 
-    const slugClass = (n) => n.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ /g, '-');
+    const slugClass = (n: string) => n.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ /g, '-');
 
     return (
         <div className="item-selector-overlay" onClick={onClose}>
@@ -312,7 +345,7 @@ function LootEntryModal({ item, roster, onConfirm, onBack, onClose }) {
                         className="w-[52px] h-[52px] rounded-[6px] border-2 border-[rgba(163,53,238,0.4)] flex-shrink-0"
                         src={`https://wow.zamimg.com/images/wow/icons/medium/${item.icon}.jpg`}
                         alt={item.name}
-                        onError={e => { e.target.src = 'https://wow.zamimg.com/images/wow/icons/medium/inv_misc_questionmark.jpg'; }}
+                        onError={(e: any) => { e.target.src = 'https://wow.zamimg.com/images/wow/icons/medium/inv_misc_questionmark.jpg'; }}
                     />
                     <div>
                         <p className={`quality-text-${item.quality} font-bold text-base m-0 mb-1`}>{item.name}</p>
@@ -376,13 +409,27 @@ function LootEntryModal({ item, roster, onConfirm, onBack, onClose }) {
 }
 
 /* ══ RaidCard ════════════════════════════════════════════════════════════════ */
-function RaidCard({ raid, isAdmin, handleSignUp, handleDeleteRaid, handleAddLoot, handleRemoveLoot, groupingMode, setGroupingMode, getGroupedByClass, getRoleIcon, slugClass }) {
-    const [activeTab, setActiveTab] = useState('roster');
-    const [showItemSelector, setShowItemSelector] = useState(false);
-    const [pendingItem, setPendingItem] = useState(null);
+interface RaidCardProps {
+    raid: Raid;
+    isAdmin: boolean;
+    handleSignUp: (id: string) => void;
+    handleDeleteRaid: (id: string) => void;
+    handleAddLoot: (id: string, entry: any) => void;
+    handleRemoveLoot: (raidId: string, lootId: string) => void;
+    groupingMode: 'role' | 'class';
+    setGroupingMode: (mode: 'role' | 'class') => void;
+    getGroupedByClass: (signups: Signup[]) => { [key: string]: Signup[] };
+    getRoleIcon: (role: string) => React.ReactNode;
+    slugClass: (name: string) => string;
+}
 
-    const handleItemSelected = (item) => { setShowItemSelector(false); setPendingItem(item); };
-    const handleLootConfirmed = (entry) => { handleAddLoot(raid.id, entry); setPendingItem(null); };
+function RaidCard({ raid, isAdmin, handleSignUp, handleDeleteRaid, handleAddLoot, handleRemoveLoot, groupingMode, setGroupingMode, getGroupedByClass, getRoleIcon, slugClass }: RaidCardProps) {
+    const [activeTab, setActiveTab] = useState<'roster' | 'loot'>('roster');
+    const [showItemSelector, setShowItemSelector] = useState(false);
+    const [pendingItem, setPendingItem] = useState<any>(null);
+
+    const handleItemSelected = (item: any) => { setShowItemSelector(false); setPendingItem(item); };
+    const handleLootConfirmed = (entry: any) => { handleAddLoot(raid.id, entry); setPendingItem(null); };
 
     const loot = raid.loot ?? [];
 
@@ -411,8 +458,8 @@ function RaidCard({ raid, isAdmin, handleSignUp, handleDeleteRaid, handleAddLoot
                 {/* Tabs */}
                 <div className="flex gap-2 mb-6 border-b border-[#2a2a33] pb-2">
                     {[
-                        { key: 'roster', icon: <UserPlus size={14} />, label: 'Roster' },
-                        { key: 'loot', icon: <Package size={14} />, label: 'Botín', badge: loot.length },
+                        { key: 'roster' as const, icon: <UserPlus size={14} />, label: 'Roster' },
+                        { key: 'loot' as const, icon: <Package size={14} />, label: 'Botín', badge: loot.length },
                     ].map(({ key, icon, label, badge }) => (
                         <button
                             key={key}
@@ -424,7 +471,7 @@ function RaidCard({ raid, isAdmin, handleSignUp, handleDeleteRaid, handleAddLoot
                                 }`}
                         >
                             {icon} {label}
-                            {badge > 0 && <span className="bg-[rgba(163,53,238,0.3)] text-[#c570f5] text-[0.65rem] px-[0.4rem] py-[0.05rem] rounded-[10px]">{badge}</span>}
+                            {badge! > 0 && <span className="bg-[rgba(163,53,238,0.3)] text-[#c570f5] text-[0.65rem] px-[0.4rem] py-[0.05rem] rounded-[10px]">{badge}</span>}
                         </button>
                     ))}
                 </div>
@@ -442,7 +489,7 @@ function RaidCard({ raid, isAdmin, handleSignUp, handleDeleteRaid, handleAddLoot
                         <div className="flex items-center gap-4 mb-6 px-4 py-2 bg-[rgba(255,255,255,0.02)] rounded-[4px] border border-[rgba(255,255,255,0.05)]">
                             <span className="text-[0.75rem] uppercase text-[#8b8b99] tracking-[0.5px]">Agrupar por:</span>
                             <div className="flex gap-2">
-                                {['role', 'class'].map(mode => (
+                                {(['role', 'class'] as const).map(mode => (
                                     <button
                                         key={mode}
                                         onClick={() => setGroupingMode(mode)}
@@ -527,8 +574,8 @@ function RaidCard({ raid, isAdmin, handleSignUp, handleDeleteRaid, handleAddLoot
                                             {entry.icon && (
                                                 <img className="w-5 h-5 rounded-[3px] border border-[rgba(0,0,0,0.4)] flex-shrink-0 loot-item-icon"
                                                     src={`https://wow.zamimg.com/images/wow/icons/small/${entry.icon}.jpg`}
-                                                    alt={entry.itemName}
-                                                    onError={e => { e.target.style.display = 'none'; }}
+                                                    alt={entry.item_name}
+                                                    onError={(e: any) => { e.target.style.display = 'none'; }}
                                                 />
                                             )}
                                             <span className="item-dot w-[7px] h-[7px] rounded-full flex-shrink-0" />
@@ -568,7 +615,16 @@ function RaidCard({ raid, isAdmin, handleSignUp, handleDeleteRaid, handleAddLoot
 }
 
 /* ══ RoleColumn ══════════════════════════════════════════════════════════════ */
-function RoleColumn({ role, icon, colorClass, signups, slugClass, getRoleIcon }) {
+interface RoleColumnProps {
+    role: string;
+    icon: JSX.Element;
+    colorClass: string;
+    signups: Signup[];
+    slugClass: (name: string) => string;
+    getRoleIcon?: (role: string) => React.ReactNode;
+}
+
+function RoleColumn({ role, icon, colorClass, signups, slugClass, getRoleIcon }: RoleColumnProps) {
     const label = role === 'Tanque' ? 'Tanques' : role === 'Sanador' ? 'Healers' : 'DPS';
     return (
         <div className="flex flex-col gap-[0.8rem]">

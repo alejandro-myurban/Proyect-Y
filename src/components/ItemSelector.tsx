@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, X, ExternalLink, ChevronDown } from 'lucide-react';
-import { TBC_RAIDS, TBC_RAID_ITEMS, getBossesForRaid, getItems } from '../data/tbcRaidItems';
+import { TBC_RAIDS, TBC_RAID_ITEMS, getBossesForRaid, getItems, RaidItem } from '../data/tbcRaidItems';
 
 const SLOT_FALLBACK_ICONS = {
   'Cabeza': 'inv_helmet_03', 'Cuello': 'inv_jewelry_necklace_09', 'Hombros': 'inv_shoulder_02',
@@ -11,14 +11,15 @@ const SLOT_FALLBACK_ICONS = {
   'A distancia': 'inv_weapon_rifle_07', 'Montura': 'inv_misc_foot_centaur', 'default': 'inv_misc_questionmark',
 };
 
-function getSlotFallback(slot) {
+function getSlotFallback(slot: string | undefined): string {
+  if (!slot) return SLOT_FALLBACK_ICONS.default;
   for (const [key, val] of Object.entries(SLOT_FALLBACK_ICONS)) {
-    if (slot?.includes(key)) return val;
+    if (slot.includes(key)) return val;
   }
   return SLOT_FALLBACK_ICONS.default;
 }
 
-function WowItemIcon({ item, size = 40 }) {
+function WowItemIcon({ item, size = 40 }: { item: RaidItem; size?: number }) {
   const [iconName, setIconName] = useState(item.icon);
   return (
     <img
@@ -31,8 +32,8 @@ function WowItemIcon({ item, size = 40 }) {
   );
 }
 
-export function QualityBadge({ quality }) {
-  const colors = { uncommon: '#1eff00', rare: '#0070dd', epic: '#a335ee', legendary: '#ff8000' };
+export function QualityBadge({ quality }: { quality: RaidItem['quality'] }) {
+  const colors: Record<string, string> = { uncommon: '#1eff00', rare: '#0070dd', epic: '#a335ee', legendary: '#ff8000', common: '#fff' };
   return (
     <span
       className="absolute bottom-[-2px] right-[-2px] w-2 h-2 rounded-full border border-[rgba(0,0,0,0.5)]"
@@ -50,17 +51,17 @@ const RAID_TAB_COLORS = {
   }
 };
 
-export default function ItemSelector({ onSelect, onClose, raidFilter = null }) {
+export default function ItemSelector({ onSelect, onClose, raidFilter = null }: { onSelect: (item: RaidItem) => void; onClose: () => void; raidFilter?: string | null }) {
   const [activeRaid, setActiveRaid]   = useState(raidFilter ?? 'all');
   const [activeBoss, setActiveBoss]   = useState('all');
   const [search, setSearch]           = useState('');
-  const [hoveredItem, setHoveredItem] = useState(null);
-  const searchRef = useRef(null);
+  const [hoveredItem, setHoveredItem] = useState<RaidItem | null>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { setTimeout(() => searchRef.current?.focus(), 50); }, []);
   useEffect(() => { setActiveBoss('all'); }, [activeRaid]);
   useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
@@ -75,9 +76,9 @@ export default function ItemSelector({ onSelect, onClose, raidFilter = null }) {
     search,
   });
 
-  const qualityAccent = { uncommon: '#1eff00', rare: '#0070dd', epic: '#a335ee', legendary: '#ff8000' };
-  const qualityBorder = { uncommon: 'rgba(30,255,0,0.25)', rare: 'rgba(0,112,221,0.25)', epic: 'rgba(163,53,238,0.35)', legendary: 'rgba(255,128,0,0.35)' };
-  const qualityText   = { uncommon: '#1eff00', rare: '#0070dd', epic: '#c570f5', legendary: '#ff8000' };
+  const qualityAccent: Record<string, string> = { uncommon: '#1eff00', rare: '#0070dd', epic: '#a335ee', legendary: '#ff8000', common: '#fff' };
+  const qualityBorder: Record<string, string> = { uncommon: 'rgba(30,255,0,0.25)', rare: 'rgba(0,112,221,0.25)', epic: 'rgba(163,53,238,0.35)', legendary: 'rgba(255,128,0,0.35)', common: 'rgba(255,255,255,0.2)' };
+  const qualityText: Record<string, string>   = { uncommon: '#1eff00', rare: '#0070dd', epic: '#c570f5', legendary: '#ff8000', common: '#fff' };
 
   return (
     <div
@@ -106,7 +107,7 @@ export default function ItemSelector({ onSelect, onClose, raidFilter = null }) {
         <div className="flex gap-1 px-5 pt-3 border-b border-[rgba(255,255,255,0.06)] flex-shrink-0 flex-wrap">
           {[{ key: 'all', label: 'Todos' }, ...TBC_RAIDS.map(r => ({ key: r, label: r }))].map(({ key, label }) => {
             const isActive = activeRaid === key;
-            const accentColor = RAID_TAB_COLORS.active[key];
+            const accentColor = (RAID_TAB_COLORS.active as any)[key];
             return (
               <button
                 key={key}
@@ -116,7 +117,7 @@ export default function ItemSelector({ onSelect, onClose, raidFilter = null }) {
                     ? `text-white border-[rgba(255,255,255,0.08)] border-b-[#1a1a2e] bg-[#1a1a2e] ${accentColor}`
                     : 'text-[#888] border-transparent bg-transparent hover:text-[#ccc] hover:bg-[rgba(255,255,255,0.05)]'
                   }`}
-                style={isActive ? { borderTopColor: Object.values(RAID_TAB_COLORS.active[key] ?? {})[0] } : {}}
+                style={isActive ? { borderTopColor: (RAID_TAB_COLORS.active as any)[key] ? '#a335ee' : undefined } as React.CSSProperties : {}}
               >
                 {label}
               </button>
@@ -181,7 +182,6 @@ export default function ItemSelector({ onSelect, onClose, raidFilter = null }) {
                     background: isHovered ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.03)',
                     borderColor: isHovered ? qualityBorder[item.quality] : 'rgba(255,255,255,0.06)',
                     transform: isHovered ? 'translateY(-1px)' : 'none',
-                    '--accent': qualityAccent[item.quality],
                   }}
                 >
                   {/* Left quality accent */}

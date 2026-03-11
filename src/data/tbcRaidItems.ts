@@ -11,11 +11,21 @@ export const QUALITY_COLORS = {
   legendary:'#ff8000',
 };
 
+export interface RaidItem {
+  id: number;
+  name: string;
+  quality: 'uncommon' | 'rare' | 'epic' | 'legendary' | 'common';
+  slot: string;
+  boss: string;
+  raid: string;
+  icon: string;
+}
+
 const KZ = 'Karazhan';
 const GR = "Gruul's Lair";
 const MG = 'Guarida de Magtheridon';
 
-export const TBC_RAID_ITEMS = [
+export const TBC_RAID_ITEMS: RaidItem[] = [
   // ─── KARAZHAN ────────────────────────────────────────────────────
 
   // Attumen the Huntsman
@@ -274,7 +284,7 @@ export const TBC_RAID_ITEMS = [
 ];
 
 // Helper: todos los bosses de una raid
-export function getBossesForRaid(raidName) {
+export function getBossesForRaid(raidName: string) {
   return [...new Set(
     TBC_RAID_ITEMS
       .filter(i => i.raid === raidName)
@@ -282,8 +292,14 @@ export function getBossesForRaid(raidName) {
   )];
 }
 
+interface GetItemsArgs {
+  raid?: string | null;
+  boss?: string | null;
+  search?: string;
+}
+
 // Helper: items filtrados
-export function getItems({ raid = null, boss = null, search = '' } = {}) {
+export function getItems({ raid = null, boss = null, search = '' }: GetItemsArgs = {}) {
   return TBC_RAID_ITEMS.filter(item => {
     if (raid   && item.raid !== raid)   return false;
     if (boss   && item.boss !== boss)   return false;

@@ -1,12 +1,17 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Skull } from 'lucide-react';
+import { Menu, X, Skull, LogIn } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from './ui/button';
 
 function Navbar() {
     const { user, signOut } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const location = useLocation();
+
+    const userInitial = user?.email?.charAt(0).toUpperCase() || "?";
+
 
     const toggleMenu = () => {
         setIsOpen(!isOpen);
@@ -20,11 +25,11 @@ function Navbar() {
     ];
 
     return (
-        <nav className="bg-[rgba(10,10,12,0.95)] backdrop-blur-[10px] h-20 flex justify-center items-center text-[1.1rem] font-['Changa_One'] fixed top-0 w-full z-[1000] border-b border-[#2a2a33]">
+        <nav className="bg-[rgba(10,10,12,0.95)] backdrop-blur-[10px] h-20 flex justify-center items-center text-[1.1rem] font-['Inter'] font-bold fixed top-0 w-full z-40 border-b border-[#2a2a33]">
             <div className="flex justify-between items-center w-full max-w-[1440px] mx-auto px-8">
                 <Link to="/" className="flex items-center no-underline text-[1.5rem] cursor-pointer">
                     <Skull size={32} color="#3db518" />
-                    <span className="ml-2 text-white font-medium tracking-[2px]">
+                    <span className="ml-2 text-white font-medium tracking-[2px] font-['Changa_One']">
                         Spanish<span className="text-[#86b518]">Mafia</span>
                     </span>
                 </Link>
@@ -78,25 +83,43 @@ function Navbar() {
                     <li className="hidden max-[960px]:flex flex-col gap-4 w-full px-8 mt-8 border-none h-auto">
                         {user ? (
                             <>
-                                <span className="text-[#8b8b99] text-sm text-center font-sans">{user.email}</span>
+                                <div className="flex items-center gap-3 self-center mb-2">
+                                    <Avatar className="size-10 border border-primary/20">
+                                        <AvatarFallback className="bg-primary/10 text-primary font-bold">{userInitial}</AvatarFallback>
+                                    </Avatar>
+                                </div>
                                 <button onClick={() => { signOut(); setIsOpen(false); }} className="btn w-full">Cerrar Sesión</button>
                             </>
                         ) : (
-                            <Link to="/login" className="btn btn-primary w-full" onClick={() => setIsOpen(false)}>Acceder</Link>
+                            <Link to="/login" className="w-full" onClick={() => setIsOpen(false)}>
+                                <Button className="w-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/50 tracking-wider uppercase text-lg h-12 shadow-[0_0_15px_rgba(134,181,24,0.1)]">
+                                    <LogIn className="size-5 mr-2" />
+                                    Login
+                                </Button>
+                            </Link>
                         )}
                     </li>
                 </ul>
 
                 {/* Botones Auth desktop */}
-                <div className="flex items-center gap-6 max-[960px]:hidden">
+                <div className="flex items-center gap-6 max-[960px]:hidden ">
                     {user ? (
-                        <div className="flex items-center gap-4">
-                            <span className="text-[#8b8b99] text-sm font-sans lowercase opacity-60 hover:opacity-100 transition-opacity cursor-default">{user.email}</span>
+                        <div className="flex items-center gap-4 ">
+                            <div className="flex items-center gap-2 group cursor-default cursor-pointer">
+                                <Avatar className="size-9 border border-primary/20 transition-colors group-hover:border-primary/40">
+                                    <AvatarFallback className="bg-primary/10 text-primary font-bold ">{userInitial}</AvatarFallback>
+                                </Avatar>
+                            </div>
                             <button onClick={signOut} className="btn py-2 px-4 text-[0.8rem]">Salir</button>
                             <Link to="/calendar" className="btn btn-primary">Raid</Link>
                         </div>
                     ) : (
-                        <Link to="/login" className="btn btn-primary">Acceder</Link>
+                        <Link to="/login">
+                            <Button className="font-sans font-bold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/50 tracking-widest uppercase px-8 shadow-[0_0_15px_rgba(134,181,24,0.1)] hover:shadow-[0_0_25px_rgba(134,181,24,0.3)] transition-all duration-300 group">
+                                <LogIn className="size-4 mr-2 group-hover:translate-x-1 transition-transform" />
+                                Login
+                            </Button>
+                        </Link>
                     )}
                 </div>
             </div>

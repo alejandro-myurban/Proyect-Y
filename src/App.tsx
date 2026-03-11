@@ -5,12 +5,24 @@ import Guides from './pages/Guides';
 import LootSystem from './pages/LootSystem';
 import Calendar from './pages/Calendar';
 
+import { Toaster } from "sileo";
 import { AuthProvider } from './context/AuthContext';
 import Login from './pages/Login';
+import Footer from './components/Footer';
 
 function App() {
   return (
     <AuthProvider>
+      <Toaster  
+      
+        offset={{ top: 100, right: 16 }}
+        options={{
+
+          fill: "#2E2E2E",
+          styles: { description: "text-white" },
+        }} 
+        position="top-center"
+      />
       <Navbar />
       <div className="min-h-screen pt-10">
         <Routes>
@@ -21,6 +33,7 @@ function App() {
           <Route path="/login" element={<Login />} />
         </Routes>
       </div>
+      <Footer />
     </AuthProvider>
   )
 }
