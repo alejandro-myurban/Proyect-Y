@@ -33,7 +33,7 @@ function Home() {
                     </p>
                     <div className="flex gap-6 justify-center items-center max-[768px]:flex-col max-[768px]:gap-4">
                         <Link to="/login">
-                            <ShinyButton className="text-2xl font-bold px-10 py-4">
+                            <ShinyButton className="text-2xl font-sans font-bold px-10 py-4">
                                 ¿A qué esperas? 
                             </ShinyButton>  
                         </Link>

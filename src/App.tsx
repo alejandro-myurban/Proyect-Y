@@ -4,6 +4,7 @@ import Home from './pages/Home';
 import Guides from './pages/Guides';
 import LootSystem from './pages/LootSystem';
 import Calendar from './pages/Calendar';
+import Profile from './pages/Profile';
 
 import { Toaster } from "sileo";
 import { AuthProvider } from './context/AuthContext';
@@ -31,6 +32,7 @@ function App() {
           <Route path="/loot" element={<LootSystem />} />
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
       </div>
       <Footer />
