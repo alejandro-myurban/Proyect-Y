@@ -1,8 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Skull } from 'lucide-react';
 import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 function Navbar() {
+    const { user, signOut } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const location = useLocation();
 
@@ -72,21 +74,30 @@ function Navbar() {
                         </li>
                     ))}
 
-                    {/* Botón mobile "Unirse a Raid" */}
-                    <li className="hidden max-[960px]:flex justify-center items-center border-none h-auto">
-                        <Link
-                            to="/calendar"
-                            className="btn btn-primary py-4 px-8 w-4/5 mt-8 text-center"
-                            onClick={() => setIsOpen(false)}
-                        >
-                            Unirse a Raid
-                        </Link>
+                    {/* Botones Auth mobile */}
+                    <li className="hidden max-[960px]:flex flex-col gap-4 w-full px-8 mt-8 border-none h-auto">
+                        {user ? (
+                            <>
+                                <span className="text-[#8b8b99] text-sm text-center font-sans">{user.email}</span>
+                                <button onClick={() => { signOut(); setIsOpen(false); }} className="btn w-full">Cerrar Sesión</button>
+                            </>
+                        ) : (
+                            <Link to="/login" className="btn btn-primary w-full" onClick={() => setIsOpen(false)}>Acceder</Link>
+                        )}
                     </li>
                 </ul>
 
-                {/* Botón desktop */}
-                <div className="flex items-center max-[960px]:hidden">
-                    <Link to="/calendar" className="btn btn-primary">Unirse a Raid</Link>
+                {/* Botones Auth desktop */}
+                <div className="flex items-center gap-6 max-[960px]:hidden">
+                    {user ? (
+                        <div className="flex items-center gap-4">
+                            <span className="text-[#8b8b99] text-sm font-sans lowercase opacity-60 hover:opacity-100 transition-opacity cursor-default">{user.email}</span>
+                            <button onClick={signOut} className="btn py-2 px-4 text-[0.8rem]">Salir</button>
+                            <Link to="/calendar" className="btn btn-primary">Raid</Link>
+                        </div>
+                    ) : (
+                        <Link to="/login" className="btn btn-primary">Acceder</Link>
+                    )}
                 </div>
             </div>
         </nav>

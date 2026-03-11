@@ -21,9 +21,9 @@ function Home() {
                 {/* Content */}
                 <div className="max-w-[800px] px-8 z-[2] [animation:fadeUp_1s_ease-out]">
                     <h1 className="text-[clamp(2.5rem,8vw,5rem)] mb-6 leading-[1.1] [text-shadow:0_5px_15px_rgba(0,0,0,0.8),0_0_20px_rgba(134,181,24,0.2)]">
-                        Únete a la <span className="text-[#86b518] glow-text">Spanish Mafia</span>
+                        Únete a la <span className=" glow-text">Spanish Mafia</span>
                     </h1>
-                    <p className="text-[1.25rem] text-[#8b8b99] mb-12 max-w-[600px] mx-auto [text-shadow:0_2px_4px_rgba(0,0,0,0.8)]">
+                    <p className="text-[1.25rem] text-white mb-12 max-w-[600px] mx-auto [text-shadow:0_2px_4px_rgba(0,0,0,0.8)]">
                         Únete a la hermandad de raideo más agresiva y coordinada. Buscamos jugadores dedicados dispuestos a conquistar el contenido más difícil que World of Warcraft tiene para ofrecer.
                     </p>
                     <div className="flex gap-6 justify-center items-center max-[768px]:flex-col max-[768px]:gap-4">
