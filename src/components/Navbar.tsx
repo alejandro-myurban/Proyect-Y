@@ -1,6 +1,6 @@
-import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Skull, LogIn } from 'lucide-react';
-import { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, X, Skull, LogIn, LogOut, UserCircle2, CalendarDays } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from './ui/button';
@@ -8,7 +8,21 @@ import { Button } from './ui/button';
 function Navbar() {
     const { user, signOut } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
+    const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+    const avatarRef = useRef<HTMLDivElement>(null);
     const location = useLocation();
+    const navigate = useNavigate();
+
+    // Close avatar menu on outside click
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (avatarRef.current && !avatarRef.current.contains(e.target as Node)) {
+                setAvatarMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
 
     const userInitial = user?.email?.charAt(0).toUpperCase() || "?";
 
@@ -84,15 +98,21 @@ function Navbar() {
                         {user ? (
                             <>
                                 <div className="flex items-center gap-3 self-center mb-2">
-                                    <Avatar className="size-10 border border-primary/20">
-                                        <AvatarFallback className="bg-primary/10 text-primary font-bold">{userInitial}</AvatarFallback>
+                                    <Avatar className="size-10 border border-[#2a2a33] cursor-pointer">
+                                        <AvatarFallback className="bg-[rgba(134,181,24,0.1)] text-[#86b518] font-['Changa_One'] ">{userInitial}</AvatarFallback>
                                     </Avatar>
+                                    <span className="text-[0.8rem] text-[#8b8b99] truncate max-w-[180px]">{user.email}</span>
                                 </div>
-                                <button onClick={() => { signOut(); setIsOpen(false); }} className="btn w-full">Cerrar Sesión</button>
+                                <Link to="/profile" onClick={() => setIsOpen(false)} className="btn w-full flex items-center justify-center gap-2">
+                                    <UserCircle2 size={14} /> Ver Perfil
+                                </Link>
+                                <button onClick={() => { signOut(); setIsOpen(false); }} className="btn w-full flex items-center justify-center gap-2 text-[#8b8b99]">
+                                    <LogOut size={14} /> Cerrar Sesión
+                                </button>
                             </>
                         ) : (
                             <Link to="/login" className="w-full" onClick={() => setIsOpen(false)}>
-                                <Button className="w-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/50 tracking-wider uppercase text-lg h-12 shadow-[0_0_15px_rgba(134,181,24,0.1)]">
+                                <Button className="w-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/50 uppercase text-lg h-12 shadow-[0_0_15px_rgba(134,181,24,0.1)]">
                                     <LogIn className="size-5 mr-2" />
                                     Login
                                 </Button>
@@ -102,16 +122,55 @@ function Navbar() {
                 </ul>
 
                 {/* Botones Auth desktop */}
-                <div className="flex items-center gap-6 max-[960px]:hidden ">
+                <div className="flex items-center gap-4 max-[960px]:hidden">
                     {user ? (
-                        <div className="flex items-center gap-4 ">
-                            <div className="flex items-center gap-2 group cursor-default cursor-pointer">
-                                <Avatar className="size-9 border border-primary/20 transition-colors group-hover:border-primary/40">
-                                    <AvatarFallback className="bg-primary/10 text-primary font-bold ">{userInitial}</AvatarFallback>
-                                </Avatar>
+                        <div className="flex items-center gap-3">
+                            <Link to="/calendar">
+                                <Button className="font-sans font-bold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/50  uppercase px-6 shadow-[0_0_15px_rgba(134,181,24,0.1)] hover:shadow-[0_0_25px_rgba(134,181,24,0.3)] transition-all duration-300 group">
+                                    <CalendarDays className="size-4 mr-2 group-hover:scale-110 transition-transform" />
+                                    Raid
+                                </Button>
+                            </Link>
+
+                            {/* Avatar with dropdown */}
+                            <div ref={avatarRef} className="relative">
+                                <button
+                                    onClick={() => setAvatarMenuOpen((v) => !v)}
+                                    className="flex items-center gap-2 group focus:outline-none"
+                                >
+                                    <Avatar className="size-9 border border-[#2a2a33] cursor-pointer transition-all duration-150 group-hover:border-[#86b518]/50 group-hover:shadow-[0_0_12px_rgba(134,181,24,0.15)]">
+                                        <AvatarFallback className="bg-[rgba(134,181,24,0.1)] text-[#86b518] font-['Changa_One'] text-[1rem]">
+                                            {userInitial}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                </button>
+
+                                {/* Dropdown */}
+                                {avatarMenuOpen && (
+                                    <div className="absolute right-0 top-full mt-2 w-[200px] bg-[#1c1c21] border border-[#2a2a33] rounded-[6px] shadow-[0_8px_30px_rgba(0,0,0,0.6)] overflow-hidden z-50">
+                                        {/* User info */}
+                                        <div className="px-4 py-3 border-b border-[#2a2a33]">
+                                            <p className="text-[0.7rem] text-[#555] uppercase tracking-widest mb-0.5">Conectado como</p>
+                                            <p className="text-[0.8rem] text-[#e2e2e2] truncate">{user.email}</p>
+                                        </div>
+                                        {/* Menu items */}
+                                        <button
+                                            onClick={() => { setAvatarMenuOpen(false); navigate('/profile'); }}
+                                            className="w-full flex items-center gap-2.5 px-4 py-3 text-[0.82rem] text-[#e2e2e2] hover:bg-[rgba(255,255,255,0.05)] transition-colors text-left"
+                                        >
+                                            <UserCircle2 size={14} className="text-[#86b518]" />
+                                            Ver Perfil
+                                        </button>
+                                        <button
+                                            onClick={() => { setAvatarMenuOpen(false); signOut(); }}
+                                            className="w-full flex items-center gap-2.5 px-4 py-3 text-[0.82rem] text-[#8b8b99] hover:bg-[rgba(255,60,60,0.08)] hover:text-[#ff6b6b] transition-colors text-left border-t border-[#2a2a33]"
+                                        >
+                                            <LogOut size={14} />
+                                            Cerrar Sesión
+                                        </button>
+                                    </div>
+                                )}
                             </div>
-                            <button onClick={signOut} className="btn py-2 px-4 text-[0.8rem]">Salir</button>
-                            <Link to="/calendar" className="btn btn-primary">Raid</Link>
                         </div>
                     ) : (
                         <Link to="/login">
