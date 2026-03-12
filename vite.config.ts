@@ -11,6 +11,12 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    exclude: ['@wowserhq/scene'],
+    include: ['@wowserhq/scene', '@wowserhq/format', '@wowserhq/io'],
+  },
+  build: {
+    sourcemap: false,
+  },
+  css: {
+    devSourcemap: false,
   },
 })
