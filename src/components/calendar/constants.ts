@@ -80,7 +80,6 @@ export const CLASS_COLORS: Record<string, string> = {
   'Chamán':                 '#0070DE',
   'Mago':                   '#69CCF0',
   'Brujo':                  '#9482C9',
-  'Monje':                  '#00FF96',
   'Druida':                 '#FF7D0A',
 };
 
@@ -94,10 +93,6 @@ const CLASS_SLUGS: Record<string, string> = {
   'Mago':                   'mage',
   'Brujo':                  'warlock',
   'Druida':                 'druid',
-  'Caballero de la Muerte': 'deathknight',
-  'Monje':                  'monk',
-  'Cazador de Demonios':    'demonhunter',
-  'Evocador':               'evoker',
 };
 
 export function getClassIcon(className: string) {
@@ -106,4 +101,4 @@ export function getClassIcon(className: string) {
 }
 
 // Set your admin emails here
-export const ADMIN_EMAILS: string[] = ['kavaliergrau3@gmail.com'];
+export const ADMIN_EMAILS: string[] = ['kavaliergrau3@gmail.com', 'saralopmel9487@gmail.com', 'ivansym3@gmail.com'];
