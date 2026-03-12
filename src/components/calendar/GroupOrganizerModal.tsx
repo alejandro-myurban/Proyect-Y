@@ -1,7 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, X, Save, Shield, Heart, Swords, Users, ArrowRight, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { slugClass, RAID_CONFIG, CLASS_COLORS, type CharRole } from './constants';
+import {
+  DndContext,
+  DragOverlay,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  PointerSensor,
+} from '@dnd-kit/core';
+import { slugClass, RAID_CONFIG, CLASS_COLORS, getClassIcon, type CharRole } from './constants';
 import type { Raid, Signup } from '../../types/calendar';
 
 interface GroupOrganizerModalProps {
@@ -43,38 +52,52 @@ function UnassignedRow({
   signup,
   groups,
   onAssign,
+  activeId,
 }: {
   signup: Signup;
   groups: GroupDef[];
   onAssign: (num: number) => void;
+  activeId: string | null;
 }) {
   const [expanded, setExpanded] = useState(false);
   const classColor = CLASS_COLORS[signup.class] ?? '#8b8b99';
 
+  const { setNodeRef, listeners, attributes } = useDraggable({
+    id: signup.id,
+    data: { signup },
+  });
+
+  const isDragging = activeId === signup.id;
+
   return (
-    <div className="flex flex-col gap-1">
+    <div ref={setNodeRef} className="flex flex-col gap-1">
       <div
-        className="flex items-center gap-2.5 pl-0 pr-3 py-0 rounded-[4px] border cursor-pointer transition-all duration-100 overflow-hidden"
+        className="flex items-center gap-2.5 pl-0 pr-3 py-0 rounded-[4px] border cursor-grab active:cursor-grabbing transition-all duration-100 overflow-hidden"
         style={{
+          opacity: isDragging ? 0.3 : 1,
+          zIndex: isDragging ? 9999 : undefined,
           borderColor: expanded ? `${classColor}50` : 'rgba(255,255,255,0.06)',
           background: expanded ? `${classColor}12` : 'rgba(255,255,255,0.02)',
         }}
         onClick={() => setExpanded((v) => !v)}
+        {...listeners}
+        {...attributes}
       >
         {/* Class color left stripe */}
         <div className="w-[4px] self-stretch flex-shrink-0" style={{ background: classColor }} />
 
-        <div className="flex items-center gap-2.5 flex-1 min-w-0 py-2.5 pl-2.5">
+        <div className="flex items-center gap-2.5 flex-1 min-w-0 py-2 px-3">
           {/* Name */}
           <span className="font-['Changa_One'] text-[0.9rem] flex-1 truncate" style={{ color: classColor }}>
             {signup.name}
           </span>
 
-          {/* Class abbrev */}
-          <span className="text-[0.65rem] uppercase tracking-wide flex-shrink-0 px-1.5 py-0.5 rounded-[3px]"
-            style={{ background: `${classColor}18`, color: `${classColor}cc` }}>
-            {signup.class.substring(0, 3)}
-          </span>
+          {/* Class Icon */}
+          <img 
+            src={getClassIcon(signup.class)} 
+            alt={signup.class}
+            className="w-5 h-5 rounded-[2px] flex-shrink-0 border border-[rgba(0,0,0,0.3)]"
+          />
 
           {/* Role */}
           <span className="flex items-center gap-1 flex-shrink-0"
@@ -103,7 +126,7 @@ function UnassignedRow({
               {groups.map((g) => (
                 <button
                   key={g.group_number}
-                  onClick={() => { onAssign(g.group_number); setExpanded(false); }}
+                  onClick={(e) => { e.stopPropagation(); onAssign(g.group_number); setExpanded(false); }}
                   className="px-3 py-1.5 rounded-[3px] border text-[0.75rem] font-['Changa_One'] uppercase transition-all duration-100"
                   style={{
                     borderColor: `${classColor}50`,
@@ -128,21 +151,42 @@ function UnassignedRow({
 function GroupMemberRow({
   signup,
   onRemove,
+  activeId,
 }: {
   signup: Signup;
   onRemove: () => void;
+  activeId: string | null;
 }) {
   const classColor = CLASS_COLORS[signup.class] ?? '#8b8b99';
 
+  const { setNodeRef, listeners, attributes } = useDraggable({
+    id: signup.id,
+    data: { signup },
+  });
+
+  const isDragging = activeId === signup.id;
+
   return (
-    <div
-      className="flex items-center gap-0 rounded-[4px] border overflow-hidden group transition-all duration-100"
-      style={{ borderColor: `${classColor}30`, background: `${classColor}0a` }}
-    >
-      {/* Left stripe */}
+    <div ref={setNodeRef}>
+      <div
+        {...listeners}
+        {...attributes}
+        style={{
+          opacity: isDragging ? 0.3 : 1,
+          zIndex: isDragging ? 9999 : undefined,
+          borderColor: `${classColor}30`,
+          background: `${classColor}0a`,
+        }}
+      >
+        {/* Left stripe */}
       <div className="w-[3px] self-stretch flex-shrink-0" style={{ background: classColor }} />
 
-      <div className="flex items-center gap-2 flex-1 min-w-0 px-2.5 py-2">
+      <div className="flex items-center gap-2 flex-1 min-w-0 px-3 py-2">
+        <img 
+          src={getClassIcon(signup.class)} 
+          alt={signup.class}
+          className="w-4 h-4 rounded-[2px] flex-shrink-0 border border-[rgba(0,0,0,0.2)]"
+        />
         <span className="font-['Changa_One'] text-[0.85rem] flex-1 truncate" style={{ color: classColor }}>
           {signup.name}
         </span>
@@ -151,7 +195,7 @@ function GroupMemberRow({
           {ROLE_ICONS[signup.role as CharRole]}
         </span>
         <button
-          onClick={onRemove}
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}
           className="flex-shrink-0 transition-colors opacity-0 group-hover:opacity-100 ml-0.5"
           style={{ color: '#444' }}
           onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#ff6b6b'; }}
@@ -160,6 +204,7 @@ function GroupMemberRow({
         >
           <X size={12} />
         </button>
+      </div>
       </div>
     </div>
   );
@@ -189,6 +234,7 @@ export function GroupOrganizerModal({ open, onClose, raid, onSave }: GroupOrgani
   const [groups, setGroups] = useState<GroupDef[]>(initialGroups);
   const [assignments, setAssignments] = useState<Record<string, number | null>>(initialAssignments);
   const [saving, setSaving] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   const config = raid.raid_type ? RAID_CONFIG[raid.raid_type] : null;
   const groupCapacity = config?.capacity ?? 25;
@@ -220,6 +266,38 @@ export function GroupOrganizerModal({ open, onClose, raid, onSave }: GroupOrgani
     const empty: Record<string, number | null> = {};
     raid.signups.forEach((s) => { empty[s.id] = null; });
     setAssignments(empty);
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
+
+  const handleDragStart = (event: any) => {
+    setActiveId(String(event.active.id));
+  };
+
+  const handleDragEnd = (event: any) => {
+    const { active, over } = event;
+    setActiveId(null);
+    if (!over) {
+      console.log('No over target', event);
+      return;
+    }
+
+    const signupId = String(active.id);
+    const overId = over.id;
+    console.log('signupId:', signupId, 'overId:', overId);
+
+    if (overId === 'unassigned') {
+      unassign(signupId);
+    } else if (String(overId).startsWith('group_')) {
+      const groupNum = parseInt(String(overId).replace('group_', ''), 10);
+      assign(signupId, groupNum);
+    }
   };
 
   const handleSave = async () => {
@@ -254,8 +332,9 @@ export function GroupOrganizerModal({ open, onClose, raid, onSave }: GroupOrgani
         className="w-full h-full max-w-[1400px] max-h-[92vh] bg-[#0d0d10] border border-[#2a2a33] rounded-[6px] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* ── Header ── */}
-        <div
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          {/* ── Header ── */}
+          <div
           className="flex items-center justify-between px-6 py-4 border-b border-[#2a2a33] flex-shrink-0"
           style={{ background: config?.bgGradient ?? 'transparent' }}
         >
@@ -301,144 +380,38 @@ export function GroupOrganizerModal({ open, onClose, raid, onSave }: GroupOrgani
         </div>
 
         {/* ── Columns ── */}
-        <div className="flex flex-1 min-h-0 overflow-x-auto">
+        <div className="flex flex-1 min-h-0 overflow-x-auto bg-gray-800">
 
           {/* Sin Asignar */}
-          <div className="flex-shrink-0 w-[280px] border-r border-[#2a2a33] flex flex-col bg-[rgba(0,0,0,0.2)]">
-            <div className="px-4 py-3 border-b border-[#2a2a33] flex items-center justify-between flex-shrink-0">
-              <span className="text-[0.75rem] font-['Changa_One'] uppercase tracking-widest text-[#8b8b99]">
-                Sin Asignar
-              </span>
-              <span
-                className={`font-['Changa_One'] text-[0.8rem] px-2 py-0.5 rounded-[3px]
-                  ${unassigned.length > 0
-                    ? 'bg-[rgba(255,180,0,0.12)] text-[#f0c060]'
-                    : 'bg-[rgba(134,181,24,0.1)] text-[#86b518]'
-                  }`}
-              >
-                {unassigned.length === 0 ? '✓ Todo asignado' : `${unassigned.length} personas`}
-              </span>
-            </div>
-
-            {/* Role filter summary */}
-            <div className="flex gap-3 px-4 py-2 border-b border-[#1a1a1e] bg-[rgba(0,0,0,0.3)]">
-              {(['Tanque', 'Sanador', 'DPS'] as CharRole[]).map((role) => (
-                <div key={role} className="flex items-center gap-1.5">
-                  {ROLE_ICONS[role]}
-                  <span className="text-[0.72rem]" style={{ color: ROLE_COLORS[role] }}>
-                    {roleCount(unassigned, role)}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-1.5">
-              {unassigned.length === 0 ? (
-                <div className="flex flex-col items-center gap-2 pt-8 text-center">
-                  <span className="text-2xl">🎉</span>
-                  <p className="text-[0.78rem] text-[#555]">Todos en un grupo</p>
-                </div>
-              ) : (
-                unassigned.map((s) => (
-                  <UnassignedRow
-                    key={s.id}
-                    signup={s}
-                    groups={groups}
-                    onAssign={(num) => assign(s.id, num)}
-                  />
-                ))
-              )}
-            </div>
-          </div>
+          <UnassignedColumn 
+            unassigned={unassigned} 
+            groups={groups} 
+            onAssign={assign}
+            roleIcons={ROLE_ICONS}
+            roleColors={ROLE_COLORS}
+            activeId={activeId}
+          />
 
           {/* Group columns */}
-          {groups.map((group) => {
-            const members = getGroupSignups(group.group_number);
-            const overCapacity = members.length > groupCapacity;
-            const fillPct = Math.min(100, (members.length / groupCapacity) * 100);
-
-            return (
-              <div
-                key={group.group_number}
-                className="flex-shrink-0 w-[260px] border-r border-[#2a2a33] flex flex-col"
-              >
-                {/* Group header */}
-                <div className="px-4 py-3 border-b border-[#2a2a33] bg-[rgba(255,255,255,0.015)] flex-shrink-0">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Users size={13} className="text-[#8b8b99] flex-shrink-0" />
-                    <span className="text-[0.82rem] font-['Changa_One'] uppercase tracking-wide text-[#e2e2e2] flex-1 truncate">
-                      {group.label ?? `Grupo ${group.group_number}`}
-                    </span>
-                    <span
-                      className={`font-['Changa_One'] text-[0.75rem] px-1.5 py-0.5 rounded-[3px] flex-shrink-0
-                        ${overCapacity
-                          ? 'bg-[rgba(255,60,60,0.15)] text-[#ff6b6b]'
-                          : members.length === groupCapacity
-                          ? 'bg-[rgba(134,181,24,0.15)] text-[#86b518]'
-                          : 'bg-[rgba(255,255,255,0.06)] text-[#8b8b99]'
-                        }`}
-                    >
-                      {members.length}/{groupCapacity}
-                    </span>
-                    <button
-                      onClick={() => removeGroup(group.group_number)}
-                      className="text-[#2a2a33] hover:text-[#ff6b6b] transition-colors flex-shrink-0"
-                    >
-                      <X size={13} />
-                    </button>
-                  </div>
-
-                  {/* Fill bar */}
-                  <div className="h-[3px] bg-[#1a1a1e] rounded-full overflow-hidden mb-2">
-                    <div
-                      className="h-full rounded-full transition-all duration-300"
-                      style={{
-                        width: `${fillPct}%`,
-                        background: overCapacity ? '#ff6b6b' : members.length === groupCapacity ? '#86b518' : config?.accentColor ?? '#86b518',
-                      }}
-                    />
-                  </div>
-
-                  {/* Role breakdown */}
-                  <div className="flex gap-3">
-                    {(['Tanque', 'Sanador', 'DPS'] as CharRole[]).map((role) => (
-                      <div key={role} className="flex items-center gap-1">
-                        {ROLE_ICONS[role]}
-                        <span className="text-[0.72rem]" style={{ color: ROLE_COLORS[role] }}>
-                          {roleCount(members, role)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Members */}
-                <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-1.5">
-                  {members.length === 0 ? (
-                    <div className="flex items-center justify-center pt-8">
-                      <p className="text-[0.72rem] text-[#2a2a33] uppercase tracking-widest font-['Changa_One']">
-                        Vacío
-                      </p>
-                    </div>
-                  ) : (
-                    members.map((s) => (
-                      <GroupMemberRow
-                        key={s.id}
-                        signup={s}
-                        onRemove={() => unassign(s.id)}
-                      />
-                    ))
-                  )}
-                </div>
-              </div>
-            );
-          })}
+          {groups.map((group) => (
+            <GroupColumn 
+              key={group.group_number}
+              group={group}
+              members={getGroupSignups(group.group_number)}
+              groupCapacity={groupCapacity}
+              config={config}
+              onRemove={unassign}
+              roleIcons={ROLE_ICONS}
+              roleColors={ROLE_COLORS}
+              activeId={activeId}
+            />
+          ))}
 
           {/* Add group button column */}
           <div className="flex-shrink-0 w-[180px] flex items-start justify-center pt-12">
             <button
               onClick={addGroup}
-              className="flex flex-col items-center gap-3 text-[#2a2a33] hover:text-[#8b8b99] transition-all duration-150 p-6 rounded-[6px] hover:bg-[rgba(255,255,255,0.02)] border border-transparent hover:border-[#2a2a33]"
+              className="flex flex-col items-center gap-3 text-white hover:text-primary transition-all duration-150 p-6 rounded-[6px] hover:bg-[rgba(255,255,255,0.02)] border border-transparent hover:border-[#2a2a33]"
             >
               <div className="w-10 h-10 rounded-full border-2 border-current flex items-center justify-center">
                 <Plus size={16} />
@@ -453,7 +426,7 @@ export function GroupOrganizerModal({ open, onClose, raid, onSave }: GroupOrgani
         {/* ── Footer ── */}
         <div className="px-6 py-3 border-t border-[#1a1a1e] bg-[rgba(0,0,0,0.4)] flex items-center justify-between flex-shrink-0">
           <p className="text-[0.7rem] text-[#444]">
-            Click en un jugador → selecciona grupo · Hover en grupo → click ✕ para quitar
+            Click en un jugador → selecciona grupo · Drag para mover entre grupos
           </p>
           <div className="flex items-center gap-4">
             {/* Progress dots */}
@@ -465,7 +438,199 @@ export function GroupOrganizerModal({ open, onClose, raid, onSave }: GroupOrgani
             </div>
           </div>
         </div>
+        <DragOverlay>
+          {activeId ? (() => {
+            const signup = raid.signups.find(s => s.id === activeId);
+            if (!signup) return null;
+            const classColor = CLASS_COLORS[signup.class] ?? '#8b8b99';
+            return (
+              <div
+                className="flex items-center gap-2.5 px-3 py-2 rounded-[4px] border cursor-grabbing shadow-xl ring-2 ring-white/20"
+                style={{
+                  borderColor: `${classColor}50`,
+                  background: `${classColor}20`,
+                  zIndex: 10000,
+                }}
+              >
+                <div className="w-[4px] self-stretch flex-shrink-0" style={{ background: classColor }} />
+                <img src={getClassIcon(signup.class)} alt={signup.class} className="w-5 h-5 rounded-[2px] flex-shrink-0 border border-[rgba(0,0,0,0.3)]" />
+                <span className="font-['Changa_One'] text-[0.9rem] truncate" style={{ color: classColor }}>
+                  {signup.name}
+                </span>
+                <span className="flex items-center gap-1 flex-shrink-0" style={{ color: ROLE_COLORS[signup.role as CharRole] }}>
+                  {ROLE_ICONS[signup.role as CharRole]}
+                </span>
+              </div>
+            );
+          })() : null}
+        </DragOverlay>
+      </DndContext>
       </motion.div>
+    </div>
+  );
+}
+
+/* ── Droppable Column: Unassigned ── */
+function UnassignedColumn({ 
+  unassigned, 
+  groups, 
+  onAssign,
+  roleIcons,
+  roleColors,
+  activeId
+}: { 
+  unassigned: Signup[], 
+  groups: GroupDef[], 
+  onAssign: (id: string, num: number) => void,
+  roleIcons: Record<CharRole, React.ReactNode>,
+  roleColors: Record<CharRole, string>,
+  activeId: string | null
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: 'unassigned' });
+
+  return (
+    <div 
+      ref={setNodeRef}
+      className={`flex-shrink-0 w-[280px] border-r border-[#2a2a33] flex flex-col transition-colors duration-200
+        ${isOver ? 'bg-[rgba(255,255,255,0.05)]' : 'bg-[rgba(0,0,0,0.2)]'}`}
+    >
+      <div className="px-4 py-3 border-b border-[#2a2a33] flex items-center justify-between flex-shrink-0">
+        <span className="text-[0.75rem] font-['Changa_One'] uppercase tracking-widest text-[#8b8b99]">
+          Sin Asignar
+        </span>
+        <span
+          className={`font-['Changa_One'] text-[0.8rem] px-2 py-0.5 rounded-[3px]
+            ${unassigned.length > 0
+              ? 'bg-[rgba(255,180,0,0.12)] text-[#f0c060]'
+              : 'bg-[rgba(134,181,24,0.1)] text-[#86b518]'
+            }`}
+        >
+          {unassigned.length === 0 ? '✓ Todo asignado' : `${unassigned.length} personas`}
+        </span>
+      </div>
+
+      <div className="flex gap-3 px-4 py-2 border-b border-[#1a1a1e] bg-[rgba(0,0,0,0.3)]">
+        {(['Tanque', 'Sanador', 'DPS'] as CharRole[]).map((role) => (
+          <div key={role} className="flex items-center gap-1.5">
+            {roleIcons[role]}
+            <span className="text-[0.72rem]" style={{ color: roleColors[role] }}>
+              {roleCount(unassigned, role)}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-1.5">
+        {unassigned.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 pt-8 text-center">
+            <span className="text-2xl">🎉</span>
+            <p className="text-[0.78rem] text-[#555]">Todos en un grupo</p>
+          </div>
+        ) : (
+          unassigned.map((s) => (
+            <UnassignedRow
+              key={s.id}
+              signup={s}
+              groups={groups}
+              onAssign={(num) => onAssign(s.id, num)}
+              activeId={activeId}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Droppable Column: Group ── */
+function GroupColumn({ 
+  group, 
+  members, 
+  groupCapacity, 
+  config, 
+  onRemove,
+  roleIcons,
+  roleColors,
+  activeId
+}: { 
+  group: GroupDef, 
+  members: Signup[], 
+  groupCapacity: number, 
+  config: any,
+  onRemove: (id: string) => void,
+  roleIcons: Record<CharRole, React.ReactNode>,
+  roleColors: Record<CharRole, string>,
+  activeId: string | null
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: `group_${group.group_number}` });
+  const overCapacity = members.length > groupCapacity;
+  const fillPct = Math.min(100, (members.length / groupCapacity) * 100);
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`flex-shrink-0 w-[260px] border-r border-[#2a2a33] flex flex-col transition-colors duration-200
+        ${isOver ? 'bg-[rgba(255,255,255,0.05)]' : ''}`}
+    >
+      <div className="px-4 py-3 border-b border-[#2a2a33] bg-[rgba(255,255,255,0.015)] flex-shrink-0">
+        <div className="flex items-center gap-2 mb-2">
+          <Users size={13} className="text-[#8b8b99] flex-shrink-0" />
+          <span className="text-[0.82rem] font-['Changa_One'] uppercase tracking-wide text-[#e2e2e2] flex-1 truncate">
+            {group.label ?? `Grupo ${group.group_number}`}
+          </span>
+          <span
+            className={`font-['Changa_One'] text-[0.75rem] px-1.5 py-0.5 rounded-[3px] flex-shrink-0
+              ${overCapacity
+                ? 'bg-[rgba(255,60,60,0.15)] text-[#ff6b6b]'
+                : members.length === groupCapacity
+                ? 'bg-[rgba(134,181,24,0.15)] text-[#86b518]'
+                : 'bg-[rgba(255,255,255,0.06)] text-[#8b8b99]'
+              }`}
+          >
+            {members.length}/{groupCapacity}
+          </span>
+        </div>
+
+        <div className="h-[3px] bg-[#1a1a1e] rounded-full overflow-hidden mb-2">
+          <div
+            className="h-full rounded-full transition-all duration-300"
+            style={{
+              width: `${fillPct}%`,
+              background: overCapacity ? '#ff6b6b' : members.length === groupCapacity ? '#86b518' : config?.accentColor ?? '#86b518',
+            }}
+          />
+        </div>
+
+        <div className="flex gap-3">
+          {(['Tanque', 'Sanador', 'DPS'] as CharRole[]).map((role) => (
+            <div key={role} className="flex items-center gap-1">
+              {roleIcons[role]}
+              <span className="text-[0.72rem]" style={{ color: roleColors[role] }}>
+                {roleCount(members, role)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-1.5">
+        {members.length === 0 ? (
+          <div className="flex items-center justify-center pt-8">
+            <p className="text-[0.72rem] text-[#2a2a33] uppercase tracking-widest font-['Changa_One']">
+              Vacío
+            </p>
+          </div>
+        ) : (
+          members.map((s) => (
+            <GroupMemberRow
+              key={s.id}
+              signup={s}
+              onRemove={() => onRemove(s.id)}
+              activeId={activeId}
+            />
+          ))
+        )}
+      </div>
     </div>
   );
 }

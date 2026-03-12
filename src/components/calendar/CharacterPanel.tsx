@@ -7,6 +7,7 @@ import {
   CLASSES,
   getAvailableRoles,
   slugClass,
+  getClassIcon,
   type CharRole,
 } from './constants';
 import type { UserCharacter } from '../../types/calendar';
@@ -115,7 +116,11 @@ export function CharacterPanel({ onCharacterChange }: CharacterPanelProps) {
           <div
             className={`flex items-center gap-3 p-3 rounded-[4px] border border-[#2a2a33] bg-[rgba(255,255,255,0.02)] mb-4 class-${slugClass(character.char_class)}`}
           >
-            <span className={`class-dot class-${slugClass(character.char_class)}`} />
+            <img
+              src={getClassIcon(character.char_class)}
+              alt={character.char_class}
+              className="w-8 h-8 rounded-[3px] border border-[rgba(0,0,0,0.3)]"
+            />
             <div className="flex-1 min-w-0">
               <p className="font-['Changa_One'] text-[1rem] text-white truncate">
                 {character.char_name}

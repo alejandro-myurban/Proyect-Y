@@ -125,7 +125,7 @@ const GUIDES: RaidGuide[] = [
         ],
       },
       {
-        name: 'Nochebano',
+        name: 'Nocturno',
         subtitle: 'Opcional · La Azotea',
         warning: 'Para invocar a Nightbane necesitas haber completado la quest de la urna. No aparece sin ella.',
         tips: [
