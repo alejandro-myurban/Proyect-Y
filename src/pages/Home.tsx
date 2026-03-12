@@ -29,7 +29,7 @@ function Home() {
                         Únete a la <span className="glow-text font-rocker">Spanish Mafia</span>
                     </h1>
                     <p className="text-[1.25rem] text-white mb-12 max-w-[600px] mx-auto [text-shadow:0_2px_4px_rgba(0,0,0,0.8)]">
-                        Únete a la hermandad de raideo más agresiva y coordinada. Buscamos jugadores dedicados dispuestos a conquistar el contenido más difícil que World of Warcraft tiene para ofrecer.
+                        Únete a la hermandad española con más presencia en Spineshatter (EU). 
                     </p>
                     <div className="flex gap-6 justify-center items-center max-[768px]:flex-col max-[768px]:gap-4">
                         <Link to="/login">
@@ -55,7 +55,7 @@ function Home() {
             <section className="py-16 px-8 relative z-[3] max-w-[1440px] mx-auto w-full">
                 <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-8">
                     {[
-                        { icon: <Swords size={40} className="text-[#86b518]" />, title: 'Raideo Hardcore', text: 'Empujamos por el Cutting Edge cada tier. Nuestras estrategias son refinadas y nuestra ejecución impecable.' },
+                        { icon: <Swords size={40} className="text-[#86b518]" />, title: 'Raideo', text: 'Raideamos con varios grupos de Karazhan, Gruul, y Magtheridon. Solo apúntate y te asignamos grupo.' },
                         { icon: <ScrollText size={40} className="text-[#86b518]" />, title: 'Tácticas Personalizadas', text: 'Accede a nuestro repositorio exclusivo de guías de jefes adaptadas a nuestra composición específica de clases y plantilla.' },
                         { icon: <Shield size={40} className="text-[#86b518]" />, title: 'Loot Council Justo', text: 'Nuestro Loot Council transparente asegura que el equipo vaya a donde más beneficie a la raid, maximizando nuestra progresión.' },
                     ].map(({ icon, title, text }) => (
