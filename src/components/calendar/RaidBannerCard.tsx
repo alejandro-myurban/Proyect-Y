@@ -1,0 +1,686 @@
+import React, { useState } from 'react';
+import {
+  CheckCircle,
+  Trash2,
+  Shield,
+  Heart,
+  Swords,
+  Package,
+  Users,
+  UserCheck,
+  Lock,
+  ExternalLink,
+  Settings2,
+  PlusCircle,
+  X,
+  ChevronDown,
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { slugClass, RAID_CONFIG, CLASS_COLORS, type CharRole } from './constants';
+import { RAID_CONFIG as _RC } from './constants';
+import type { Raid, Signup, UserCharacter } from '../../types/calendar';
+import ItemSelector from '../ItemSelector';
+import { LootEntryModal } from './LootEntryModal';
+
+interface RaidBannerCardProps {
+  raid: Raid;
+  isAdmin: boolean;
+  currentCharacter: UserCharacter | null;
+  currentUserId: string | null;
+  onSignUp: (raidId: string) => void;
+  onDeleteRaid: (raidId: string) => void;
+  onAddLoot: (raidId: string, entry: any) => void;
+  onRemoveLoot: (raidId: string, lootId: string) => void;
+  onOpenGroupOrganizer: (raid: Raid) => void;
+  onCloseRaid: (raid: Raid) => void;
+}
+
+type Tab = 'roster' | 'loot' | 'grupos';
+
+const ROLE_COLORS: Record<CharRole, string> = {
+  Tanque: '#5bc0de',
+  Sanador: '#5cb85c',
+  DPS: '#d9534f',
+};
+
+function RoleTag({ role }: { role: CharRole }) {
+  const icons = { Tanque: Shield, Sanador: Heart, DPS: Swords };
+  const Icon = icons[role];
+  return (
+    <span
+      className="flex items-center gap-1 text-[0.72rem] font-['Changa_One'] uppercase"
+      style={{ color: ROLE_COLORS[role] }}
+    >
+      <Icon size={11} />
+      {role}
+    </span>
+  );
+}
+
+function formatDate(dateStr: string): string {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    return (
+      d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) +
+      ' · ' +
+      d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) +
+      ' ST'
+    );
+  } catch {
+    return dateStr;
+  }
+}
+
+export function RaidBannerCard({
+  raid,
+  isAdmin,
+  currentCharacter,
+  currentUserId,
+  onSignUp,
+  onDeleteRaid,
+  onAddLoot,
+  onRemoveLoot,
+  onOpenGroupOrganizer,
+  onCloseRaid,
+}: RaidBannerCardProps) {
+  const [expanded, setExpanded] = useState(false);
+  const [activeTab, setActiveTab] = useState<Tab>('roster');
+  const [showItemSelector, setShowItemSelector] = useState(false);
+  const [pendingItem, setPendingItem] = useState<any>(null);
+
+  const config = raid.raid_type ? RAID_CONFIG[raid.raid_type] : null;
+  const loot = raid.loot ?? [];
+  const signups = raid.signups ?? [];
+  const isPast = raid.status === 'closed';
+
+  // Find current user's signup and group
+  const mySignup = currentUserId
+    ? signups.find((s) => s.user_id === currentUserId)
+    : currentCharacter
+    ? signups.find((s) => s.name === currentCharacter.char_name)
+    : null;
+
+  const myGroup = mySignup?.raid_group_id
+    ? raid.raid_groups.find((g) => g.id === mySignup.raid_group_id)
+    : null;
+
+  const isSignedUp = !!mySignup;
+
+  const tankCount = signups.filter((s) => s.role === 'Tanque').length;
+  const healCount = signups.filter((s) => s.role === 'Sanador').length;
+  const dpsCount = signups.filter((s) => s.role === 'DPS').length;
+  const capacity = config?.capacity ?? 25;
+
+  const accentColor = config?.accentColor ?? '#86b518';
+  const borderColor = config?.borderColor ?? 'rgba(134,181,24,0.6)';
+
+  const tabs: Tab[] = ['roster', 'loot', ...(isAdmin ? ['grupos' as Tab] : [])];
+  const tabLabels: Record<Tab, { icon: React.ReactNode; label: string; badge?: number }> = {
+    roster: { icon: <Users size={13} />, label: 'Roster', badge: signups.length },
+    loot: { icon: <Package size={13} />, label: 'Botín', badge: loot.length },
+    grupos: { icon: <Settings2 size={13} />, label: 'Grupos', badge: raid.raid_groups.length },
+  };
+
+  return (
+    <>
+      <div
+        className={`relative overflow-hidden rounded-[4px] border transition-all duration-200 ${isPast ? 'opacity-70' : ''}`}
+        style={{
+          borderColor: expanded ? borderColor : 'rgba(42,42,51,0.8)',
+          background: '#121215',
+          boxShadow: expanded ? `0 0 24px ${config?.glowColor ?? 'transparent'}` : 'none',
+        }}
+      >
+        {/* Atmospheric gradient overlay */}
+        {config && (
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: config.bgGradient, opacity: expanded ? 1 : 0.5, transition: 'opacity 0.3s' }}
+          />
+        )}
+
+        {/* Left accent line */}
+        <div
+          className="absolute left-0 top-0 bottom-0 w-[3px]"
+          style={{ background: accentColor }}
+        />
+
+        {/* ── Banner row ── */}
+        <div className="relative flex items-center gap-0 min-h-[120px]">
+          {/* Raid image */}
+          <div
+            className="flex-shrink-0 w-[180px] h-[180px] self-stretch hidden sm:block overflow-hidden relative"
+            style={{ background: `linear-gradient(135deg, ${accentColor}22, transparent)` }}
+          >
+            {config?.image && (
+              <img
+                src={config.image}
+                alt={config.label}
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{ filter: 'brightness(0.75) saturate(1.1)' }}
+                onError={(e: any) => { e.target.style.display = 'none'; }}
+              />
+            )}
+            {/* Gradient overlay so the image fades into the card */}
+            <div
+              className="absolute inset-0"
+              style={{ background: 'linear-gradient(to right, transparent 60%, #121215 100%)' }}
+            />
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 px-5 py-4 flex flex-col gap-2 min-w-0">
+            {/* Title row */}
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  {isPast && (
+                    <span className="text-[0.62rem] font-['Changa_One'] uppercase tracking-widest px-1.5 py-0.5 rounded-[3px] bg-[rgba(255,255,255,0.06)] text-[#8b8b99]">
+                      Cerrada
+                    </span>
+                  )}
+                  <h3
+                    className="font-['Changa_One'] text-[1.25rem] uppercase tracking-wide leading-none"
+                    style={{ color: '#ffffff' }}
+                  >
+                    {raid.title}
+                  </h3>
+                </div>
+                <p className="text-[0.8rem] text-[#8b8b99]">{formatDate(raid.date)}</p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {isAdmin && !isPast && (
+                  <>
+                    <button
+                      onClick={() => onOpenGroupOrganizer(raid)}
+                      className="btn btn-sm flex items-center gap-1.5 text-[0.75rem]"
+                      title="Organizar grupos"
+                    >
+                      <Settings2 size={12} /> Grupos
+                    </button>
+                    <button
+                      onClick={() => onCloseRaid(raid)}
+                      className="btn btn-sm flex items-center gap-1.5 text-[0.75rem]"
+                      style={{ borderColor: '#c0392b', color: '#c0392b' }}
+                    >
+                      <Lock size={12} /> Cerrar
+                    </button>
+                    <button
+                      onClick={() => onDeleteRaid(raid.id)}
+                      className="btn btn-danger btn-sm flex items-center gap-1.5 text-[0.75rem]"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </>
+                )}
+                {!isAdmin && !isPast && (
+                  <>
+                    {isSignedUp ? (
+                      <div className="flex items-center gap-1.5 text-[0.8rem] font-['Changa_One'] uppercase"
+                        style={{ color: accentColor }}>
+                        <UserCheck size={14} />
+                        {myGroup ? `Grupo ${myGroup.group_number}` : 'Apuntado'}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => onSignUp(raid.id)}
+                        className="btn btn-primary btn-sm flex items-center gap-1.5"
+                        style={{ background: accentColor, borderColor: accentColor }}
+                      >
+                        <CheckCircle size={13} /> Apuntarse
+                      </button>
+                    )}
+                  </>
+                )}
+                {isPast && raid.warcraft_logs_url && (
+                  <a
+                    href={raid.warcraft_logs_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-sm flex items-center gap-1.5 text-[0.75rem]"
+                    style={{ borderColor: '#f0a500', color: '#f0a500' }}
+                  >
+                    <ExternalLink size={12} /> Logs
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {/* Stats row */}
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-3">
+                <RoleTag role="Tanque" />
+                <span className="font-['Changa_One'] text-[0.9rem] text-[#5bc0de]">{tankCount}</span>
+                <RoleTag role="Sanador" />
+                <span className="font-['Changa_One'] text-[0.9rem] text-[#5cb85c]">{healCount}</span>
+                <RoleTag role="DPS" />
+                <span className="font-['Changa_One'] text-[0.9rem] text-[#d9534f]">{dpsCount}</span>
+              </div>
+              <div
+                className="h-3 w-px bg-[#2a2a33]"
+              />
+              <span className="text-[0.78rem] text-[#8b8b99]">
+                <span className="font-['Changa_One'] text-white">{signups.length}</span>
+                {config ? `/${capacity * Math.max(1, raid.raid_groups.length || 1)} apuntados` : ' apuntados'}
+              </span>
+              {raid.raid_groups.length > 1 && (
+                <span className="text-[0.72rem] text-[#8b8b99]">
+                  {raid.raid_groups.length} grupos
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Expand toggle */}
+          <button
+            onClick={() => setExpanded((v) => !v)}
+            className="self-stretch px-4 flex items-center text-[#555] hover:text-[#8b8b99] transition-colors border-l border-[#2a2a33]"
+          >
+            <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
+              <ChevronDown size={16} />
+            </motion.div>
+          </button>
+        </div>
+
+        {/* ── Expanded content ── */}
+        <AnimatePresence>
+          {expanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.22, ease: 'easeInOut' }}
+              className="overflow-hidden border-t border-[#2a2a33]"
+            >
+              {/* Tabs */}
+              <div className="flex gap-0 border-b border-[#2a2a33]">
+                {tabs.map((tab) => {
+                  const { icon, label, badge } = tabLabels[tab];
+                  return (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`flex items-center gap-1.5 px-5 py-3 text-[0.78rem] font-['Changa_One'] uppercase tracking-wide transition-all duration-150 border-b-2 relative cursor-pointer
+                        ${
+                          activeTab === tab
+                            ? 'text-white border-b-[var(--accent)] bg-[rgba(255,255,255,0.02)]'
+                            : 'text-[#8b8b99] border-b-transparent hover:text-white hover:bg-[rgba(255,255,255,0.02)]'
+                        }`}
+                      style={
+                        activeTab === tab
+                          ? ({ '--accent': accentColor, borderBottomColor: accentColor } as React.CSSProperties)
+                          : {}
+                      }
+                    >
+                      {icon}
+                      {label}
+                      {badge !== undefined && badge > 0 && (
+                        <span className="text-[0.62rem] px-1 py-0.5 rounded-[3px] bg-[rgba(255,255,255,0.08)] text-[#8b8b99]">
+                          {badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Tab content */}
+              <div className="p-5">
+                {activeTab === 'roster' && (
+                  <RosterTab signups={signups} raidGroups={raid.raid_groups} />
+                )}
+                {activeTab === 'loot' && (
+                  <LootTab
+                    loot={loot}
+                    isAdmin={isAdmin}
+                    onAddDrop={() => setShowItemSelector(true)}
+                    onRemoveDrop={(lootId) => onRemoveLoot(raid.id, lootId)}
+                  />
+                )}
+                {activeTab === 'grupos' && isAdmin && (
+                  <GruposTab
+                    raid={raid}
+                    onOrganize={() => onOpenGroupOrganizer(raid)}
+                  />
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {showItemSelector && (
+        <ItemSelector
+          onSelect={(item: any) => {
+            setShowItemSelector(false);
+            setPendingItem(item);
+          }}
+          onClose={() => setShowItemSelector(false)}
+        />
+      )}
+      {pendingItem && (
+        <LootEntryModal
+          item={pendingItem}
+          roster={signups}
+          onConfirm={(entry: any) => {
+            onAddLoot(raid.id, entry);
+            setPendingItem(null);
+          }}
+          onBack={() => {
+            setPendingItem(null);
+            setShowItemSelector(true);
+          }}
+          onClose={() => setPendingItem(null)}
+        />
+      )}
+    </>
+  );
+}
+
+/* ── Roster Tab ── */
+function RosterTab({ signups, raidGroups }: { signups: Signup[]; raidGroups: Raid['raid_groups'] }) {
+  const [groupingMode, setGroupingMode] = useState<'role' | 'class' | 'group'>('role');
+
+  const hasGroups = raidGroups.length > 0;
+
+  if (signups.length === 0) {
+    return <p className="text-[0.85rem] text-[#555]">Aún nadie se ha apuntado.</p>;
+  }
+
+  return (
+    <div>
+      {/* Grouping selector */}
+      <div className="flex items-center gap-3 mb-4">
+        <span className="text-[0.7rem] uppercase text-[#8b8b99] tracking-widest">Agrupar:</span>
+        <div className="flex gap-1">
+          {([
+            ['role', 'Rol'],
+            ['class', 'Clase'],
+            ...(hasGroups ? [['group', 'Grupos'] as const] : []),
+          ] as [string, string][]).map(([mode, label]) => (
+            <button
+              key={mode}
+              onClick={() => setGroupingMode(mode as any)}
+              className={`px-3 py-1 rounded-[3px] border text-[0.7rem] font-['Changa_One'] uppercase transition-all duration-100
+                ${
+                  groupingMode === mode
+                    ? 'bg-[#86b518] border-[#86b518] text-white'
+                    : 'border-[#2a2a33] text-[#8b8b99] hover:text-white hover:border-[rgba(255,255,255,0.2)]'
+                }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <span className="ml-auto text-[0.72rem] text-[#8b8b99] font-['Changa_One']">
+          {signups.length} inscritos
+        </span>
+      </div>
+
+      {groupingMode === 'role' && (
+        <div className="grid grid-cols-3 gap-4 max-[800px]:grid-cols-1">
+          {([
+            { role: 'Tanque', icon: <Shield size={13} />, color: '#5bc0de' },
+            { role: 'Sanador', icon: <Heart size={13} />, color: '#5cb85c' },
+            { role: 'DPS', icon: <Swords size={13} />, color: '#d9534f' },
+          ] as { role: CharRole; icon: React.ReactNode; color: string }[]).map(({ role, icon, color }) => {
+            const members = signups.filter((s) => s.role === role);
+            return (
+              <div key={role} className="flex flex-col gap-1.5">
+                <div
+                  className="flex items-center gap-2 pb-2 border-b border-[rgba(255,255,255,0.05)] text-[0.72rem] font-['Changa_One'] uppercase"
+                  style={{ color }}
+                >
+                  {icon}
+                  <span>{role === 'Tanque' ? 'Tanques' : role === 'Sanador' ? 'Healers' : 'DPS'}</span>
+                  <span className="ml-auto bg-[rgba(255,255,255,0.05)] px-1.5 py-0.5 rounded-[3px] text-[#8b8b99]">
+                    {members.length}
+                  </span>
+                </div>
+                {members.map((s, i) => (
+                  <SignupRow key={i} signup={s} />
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {groupingMode === 'class' && (
+        <div className="grid grid-cols-3 gap-4 max-[800px]:grid-cols-1">
+          {Object.entries(
+            signups.reduce<Record<string, Signup[]>>((acc, s) => {
+              if (!acc[s.class]) acc[s.class] = [];
+              acc[s.class].push(s);
+              return acc;
+            }, {})
+          ).map(([cls, members]) => (
+            <div key={cls} className="flex flex-col gap-1.5">
+              <div
+                className={`flex items-center gap-2 pb-2 border-b border-[rgba(255,255,255,0.05)] text-[0.72rem] font-['Changa_One'] uppercase class-${slugClass(cls)}`}
+              >
+                <span>{cls}</span>
+                <span className="ml-auto bg-[rgba(255,255,255,0.05)] px-1.5 py-0.5 rounded-[3px] text-[#8b8b99]">
+                  {members.length}
+                </span>
+              </div>
+              {members.map((s, i) => (
+                <SignupRow key={i} signup={s} />
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {groupingMode === 'group' && raidGroups.length > 0 && (
+        <div className="grid grid-cols-3 gap-4 max-[800px]:grid-cols-1">
+          {raidGroups.map((group) => {
+            const members = signups.filter((s) => s.raid_group_id === group.id);
+            return (
+              <div key={group.id} className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-2 pb-2 border-b border-[rgba(255,255,255,0.05)] text-[0.72rem] font-['Changa_One'] uppercase text-[#86b518]">
+                  <Users size={12} />
+                  <span>{group.label ?? `Grupo ${group.group_number}`}</span>
+                  <span className="ml-auto bg-[rgba(255,255,255,0.05)] px-1.5 py-0.5 rounded-[3px] text-[#8b8b99]">
+                    {members.length}
+                  </span>
+                </div>
+                {members.map((s, i) => (
+                  <SignupRow key={i} signup={s} showRole />
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SignupRow({ signup, showRole }: { signup: Signup; showRole?: boolean }) {
+  const roleIcons: Record<CharRole, React.ReactNode> = {
+    Tanque: <Shield size={11} className="text-[#5bc0de]" />,
+    Sanador: <Heart size={11} className="text-[#5cb85c]" />,
+    DPS: <Swords size={11} className="text-[#d9534f]" />,
+  };
+  const classColor = CLASS_COLORS[signup.class] ?? '#8b8b99';
+  return (
+    <div
+      className="flex items-center justify-between pl-0 pr-2.5 py-0 rounded-[3px] overflow-hidden transition-all duration-100 hover:translate-x-[2px]"
+      style={{ background: `${classColor}0d`, border: `1px solid ${classColor}28` }}
+    >
+      <div className="w-[3px] self-stretch flex-shrink-0 mr-2.5" style={{ background: classColor }} />
+      <span className="font-medium text-[0.82rem] flex-1 truncate py-1.5" style={{ color: classColor }}>
+        {signup.name}
+      </span>
+      <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+        {showRole && roleIcons[signup.role as CharRole]}
+        <span className="text-[0.62rem] uppercase px-1 py-0.5 rounded-[2px]"
+          style={{ background: `${classColor}18`, color: `${classColor}99` }}>
+          {signup.class.substring(0, 3)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* ── Loot Tab ── */
+function LootTab({
+  loot,
+  isAdmin,
+  onAddDrop,
+  onRemoveDrop,
+}: {
+  loot: Raid['loot'];
+  isAdmin: boolean;
+  onAddDrop: () => void;
+  onRemoveDrop: (id: string) => void;
+}) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h4 className="text-[0.75rem] uppercase tracking-widest text-[#8b8b99] font-['Changa_One']">
+          Registro de Botín
+        </h4>
+        {isAdmin && (
+          <button
+            onClick={onAddDrop}
+            className="btn btn-primary btn-sm flex items-center gap-1.5 text-[0.75rem]"
+          >
+            <PlusCircle size={12} /> Añadir Drop
+          </button>
+        )}
+      </div>
+
+      {loot.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 py-8 text-[#555]">
+          <Package size={28} />
+          <p className="text-[0.82rem]">Sin botín registrado.</p>
+          {isAdmin && (
+            <button onClick={onAddDrop} className="btn btn-primary btn-sm flex items-center gap-1.5">
+              <PlusCircle size={12} /> Registrar primer drop
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-1.5">
+          {loot.map((entry, idx) => (
+            <div
+              key={idx}
+              className="grid items-center gap-3 px-3 py-2 bg-[rgba(255,255,255,0.02)] rounded-[4px] border border-[rgba(255,255,255,0.04)] transition-all hover:bg-[rgba(255,255,255,0.04)]"
+              style={{ gridTemplateColumns: '1fr auto auto' }}
+            >
+              <div className={`item-info-row ${entry.quality} flex items-center gap-2 min-w-0`}>
+                {entry.icon && (
+                  <img
+                    className="w-5 h-5 rounded-[3px] border border-[rgba(0,0,0,0.4)] flex-shrink-0 loot-item-icon"
+                    src={`https://wow.zamimg.com/images/wow/icons/small/${entry.icon}.jpg`}
+                    alt={entry.item_name}
+                    onError={(e: any) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                )}
+                <span className="item-dot w-[6px] h-[6px] rounded-full flex-shrink-0" />
+                <span className="item-name font-medium text-[0.82rem] truncate">{entry.item_name}</span>
+              </div>
+              <div className="bg-[rgba(255,255,255,0.05)] px-2.5 py-0.5 rounded-[20px] text-[0.75rem] text-[#e2e2e2] whitespace-nowrap">
+                {entry.winner}
+              </div>
+              {isAdmin && (
+                <button
+                  onClick={() => onRemoveDrop(entry.id)}
+                  className="text-[#444] hover:text-[#ff6b6b] transition-colors p-0.5"
+                >
+                  <X size={11} />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Grupos Tab (admin view within card) ── */
+function GruposTab({ raid, onOrganize }: { raid: Raid; onOrganize: () => void }) {
+  const config = raid.raid_type ? RAID_CONFIG[raid.raid_type] : null;
+  const capacity = config?.capacity ?? 25;
+
+  if (raid.raid_groups.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-8 text-[#555]">
+        <Settings2 size={28} />
+        <p className="text-[0.82rem] text-[#8b8b99]">
+          {raid.signups.length} personas apuntadas. Organízalos en grupos.
+        </p>
+        <button onClick={onOrganize} className="btn btn-primary btn-sm flex items-center gap-2">
+          <Settings2 size={13} /> Organizar Grupos
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h4 className="text-[0.75rem] uppercase tracking-widest text-[#8b8b99] font-['Changa_One']">
+          {raid.raid_groups.length} Grupos Configurados
+        </h4>
+        <button onClick={onOrganize} className="btn btn-sm flex items-center gap-1.5 text-[0.75rem]">
+          <Settings2 size={12} /> Reorganizar
+        </button>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3 max-[800px]:grid-cols-1">
+        {raid.raid_groups.map((group) => {
+          const members = raid.signups.filter((s) => s.raid_group_id === group.id);
+          const tanks = members.filter((s) => s.role === 'Tanque').length;
+          const heals = members.filter((s) => s.role === 'Sanador').length;
+          const dps = members.filter((s) => s.role === 'DPS').length;
+
+          return (
+            <div key={group.id} className="border border-[#2a2a33] rounded-[4px] p-3 bg-[rgba(255,255,255,0.02)]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-['Changa_One'] text-[0.82rem] uppercase text-white">
+                  {group.label ?? `Grupo ${group.group_number}`}
+                </span>
+                <span className="text-[0.68rem] text-[#8b8b99]">
+                  {members.length}/{capacity}
+                </span>
+              </div>
+              <div className="flex gap-2 mb-2">
+                <span className="flex items-center gap-1 text-[0.68rem] text-[#5bc0de]">
+                  <Shield size={10} /> {tanks}
+                </span>
+                <span className="flex items-center gap-1 text-[0.68rem] text-[#5cb85c]">
+                  <Heart size={10} /> {heals}
+                </span>
+                <span className="flex items-center gap-1 text-[0.68rem] text-[#d9534f]">
+                  <Swords size={10} /> {dps}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {members.slice(0, 8).map((m, i) => (
+                  <span
+                    key={i}
+                    className={`text-[0.65rem] px-1.5 py-0.5 rounded-[3px] bg-[rgba(255,255,255,0.04)] class-${slugClass(m.class)}`}
+                  >
+                    {m.name}
+                  </span>
+                ))}
+                {members.length > 8 && (
+                  <span className="text-[0.65rem] text-[#555]">+{members.length - 8}</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
