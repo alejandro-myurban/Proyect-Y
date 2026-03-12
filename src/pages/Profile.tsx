@@ -357,7 +357,7 @@ function RaidSignupRow({ signup, past }: { signup: any; past?: boolean }) {
       <div className="flex items-center gap-2 flex-shrink-0">
         {myGroup && (
           <span className="text-[0.72rem] font-['Changa_One'] uppercase px-2 py-0.5 rounded-[3px] bg-[rgba(134,181,24,0.1)] text-[#86b518]">
-            {myGroup.label ?? `Grupo ${myGroup.group_number}`}
+            {myGroup.label ?? `Roster ${myGroup.group_number}`}
           </span>
         )}
         <span className={`flex items-center gap-1 text-[0.72rem] px-2 py-0.5 rounded-[3px] font-['Changa_One'] uppercase

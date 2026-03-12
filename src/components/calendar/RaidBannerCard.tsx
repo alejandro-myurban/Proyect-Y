@@ -18,8 +18,7 @@ import {
   Send,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { slugClass, RAID_CONFIG, CLASS_COLORS, getClassIcon, type CharRole } from './constants';
-import { RAID_CONFIG as _RC } from './constants';
+import { slugClass, RAID_CONFIG, CLASS_COLORS, getClassIcon, type CharRole, getComboConfig, parseRaidCombo, type RaidTypeCombo } from './constants';
 import type { Raid, Signup, UserCharacter } from '../../types/calendar';
 import ItemSelector from '../ItemSelector';
 import { LootEntryModal } from './LootEntryModal';
@@ -149,7 +148,10 @@ export function RaidBannerCard({
     setChatInput('');
   };
 
-  const config = raid.raid_type ? RAID_CONFIG[raid.raid_type] : null;
+  const raidTypeValue = raid.raid_type;
+  const isCombo = raidTypeValue?.includes('+') ?? false;
+  const comboConfig = isCombo && raidTypeValue ? getComboConfig(raidTypeValue.split('+') as RaidTypeCombo) : null;
+  const config = comboConfig ?? (raid.raid_type ? RAID_CONFIG[raid.raid_type as keyof typeof RAID_CONFIG] : null);
   const loot = raid.loot ?? [];
   const signups = raid.signups ?? [];
   const isPast = raid.status === 'closed';
@@ -209,12 +211,35 @@ export function RaidBannerCard({
 
         {/* ── Banner row ── */}
         <div className="relative flex items-center gap-0 min-h-[120px]">
-          {/* Raid image */}
+          {/* Raid image(s) */}
           <div
             className="flex-shrink-0 w-[180px] h-[180px] self-stretch hidden sm:block overflow-hidden relative"
             style={{ background: `linear-gradient(135deg, ${accentColor}22, transparent)` }}
           >
-            {config?.image && (
+            {isCombo && comboConfig ? (
+              <>
+                <img
+                  src={comboConfig.images[0]}
+                  alt="Raid 1"
+                  className="absolute inset-0 w-full h-full object-cover"
+                  style={{ 
+                    filter: 'brightness(0.75) saturate(1.1)',
+                    clipPath: 'polygon(0 100%, 100% 0, 100% 100%)',
+                  }}
+                  onError={(e: any) => { e.target.style.display = 'none'; }}
+                />
+                <img
+                  src={comboConfig.images[1]}
+                  alt="Raid 2"
+                  className="absolute inset-0 w-full h-full object-cover"
+                  style={{ 
+                    filter: 'brightness(0.75) saturate(1.1)',
+                    clipPath: 'polygon(0 0, 100% 0, 0 100%)',
+                  }}
+                  onError={(e: any) => { e.target.style.display = 'none'; }}
+                />
+              </>
+            ) : config?.image && (
               <img
                 src={config.image}
                 alt={config.label}
@@ -281,7 +306,7 @@ export function RaidBannerCard({
                   <div className="flex items-center gap-1.5 text-[0.8rem] font-['Changa_One'] uppercase"
                     style={{ color: accentColor }}>
                     <UserCheck size={14} />
-                    {myGroup ? `Grupo ${myGroup.group_number}` : 'Apuntado'}
+                      {myGroup ? `Roster ${myGroup.group_number}` : 'Apuntado'}
                   </div>
                 ) : !isPast && currentCharacter ? (
                   <button
@@ -614,7 +639,7 @@ function RosterTab({ signups, raidGroups }: { signups: Signup[]; raidGroups: Rai
               <div key={group.id} className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-2 pb-2 border-b border-[rgba(255,255,255,0.05)] text-[0.72rem] font-['Changa_One'] uppercase text-[#86b518]">
                   <Users size={12} />
-                  <span>{group.label ?? `Grupo ${group.group_number}`}</span>
+                  <span>{group.label ?? `Roster ${group.group_number}`}</span>
                   <span className="ml-auto bg-[rgba(255,255,255,0.05)] px-1.5 py-0.5 rounded-[3px] text-[#8b8b99]">
                     {members.length}
                   </span>
@@ -743,6 +768,9 @@ function GruposTab({ raid, onOrganize }: { raid: Raid; onOrganize: () => void })
   const config = raid.raid_type ? RAID_CONFIG[raid.raid_type] : null;
   const capacity = config?.capacity ?? 25;
 
+  console.log('[GruposTab] raid_groups:', raid.raid_groups);
+  console.log('[GruposTab] signups:', raid.signups.map(s => ({ id: s.id, name: s.name, raid_group_id: s.raid_group_id })));
+
   if (raid.raid_groups.length === 0) {
     return (
       <div className="flex flex-col items-center gap-3 py-8 text-[#555]">
@@ -779,7 +807,7 @@ function GruposTab({ raid, onOrganize }: { raid: Raid; onOrganize: () => void })
             <div key={group.id} className="border border-[#2a2a33] rounded-[4px] p-3 bg-[rgba(255,255,255,0.02)]">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-['Changa_One'] text-[0.82rem] uppercase text-white">
-                  {group.label ?? `Grupo ${group.group_number}`}
+                    {group.label ?? `Roster ${group.group_number}`}
                 </span>
                 <span className="text-[0.68rem] text-[#8b8b99]">
                   {members.length}/{capacity}

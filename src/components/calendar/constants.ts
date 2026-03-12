@@ -1,4 +1,43 @@
 export type RaidType = 'karazhan' | 'gruul' | 'magtheridon';
+
+export type RaidTypeCombo = [RaidType, RaidType];
+
+export function isRaidTypeCombo(val: string): val is string {
+  return val.includes('+');
+}
+
+export function parseRaidCombo(val: string): RaidTypeCombo | null {
+  const parts = val.split('+');
+  if (parts.length !== 2) return null;
+  const r1 = parts[0].trim() as RaidType;
+  const r2 = parts[1].trim() as RaidType;
+  if (!RAID_CONFIG[r1] || !RAID_CONFIG[r2]) return null;
+  return [r1, r2];
+}
+
+export function getComboConfig(types: RaidTypeCombo): {
+  label: string;
+  capacity: number;
+  accentColor: string;
+  borderColor: string;
+  glowColor: string;
+  bgGradient: string;
+  image: string;
+  images: string[];
+} {
+  const c1 = RAID_CONFIG[types[0]];
+  const c2 = RAID_CONFIG[types[1]];
+  return {
+    label: `${c1.label} + ${c2.label}`,
+    capacity: c1.capacity + c2.capacity,
+    accentColor: c1.accentColor,
+    borderColor: c1.borderColor,
+    glowColor: c1.glowColor,
+    bgGradient: c1.bgGradient,
+    image: c1.image,
+    images: [c1.image, c2.image],
+  };
+}
 export type CharRole = 'Tanque' | 'Sanador' | 'DPS';
 
 export const CLASSES = [

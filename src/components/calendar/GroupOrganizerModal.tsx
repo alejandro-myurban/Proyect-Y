@@ -359,7 +359,7 @@ export function GroupOrganizerModal({ open, onClose, raid, onSave }: GroupOrgani
               <RotateCcw size={12} /> Reset
             </button>
             <button onClick={addGroup} className="btn btn-sm flex items-center gap-1.5 text-[0.78rem]">
-              <Plus size={12} /> Nuevo Grupo
+              <Plus size={12} /> Nuevo Roster
             </button>
             <button
               onClick={handleSave}
@@ -394,13 +394,14 @@ export function GroupOrganizerModal({ open, onClose, raid, onSave }: GroupOrgani
 
           {/* Group columns */}
           {groups.map((group) => (
-            <GroupColumn 
+            <GroupColumn
               key={group.group_number}
               group={group}
               members={getGroupSignups(group.group_number)}
               groupCapacity={groupCapacity}
               config={config}
               onRemove={unassign}
+              onRemoveGroup={() => removeGroup(group.group_number)}
               roleIcons={ROLE_ICONS}
               roleColors={ROLE_COLORS}
               activeId={activeId}
@@ -417,7 +418,7 @@ export function GroupOrganizerModal({ open, onClose, raid, onSave }: GroupOrgani
                 <Plus size={16} />
               </div>
               <span className="text-[0.72rem] uppercase tracking-widest font-['Changa_One'] text-center leading-tight">
-                Nuevo<br />Grupo
+                Nuevo<br />Roster
               </span>
             </button>
           </div>
@@ -543,21 +544,23 @@ function UnassignedColumn({
 }
 
 /* ── Droppable Column: Group ── */
-function GroupColumn({ 
-  group, 
-  members, 
-  groupCapacity, 
-  config, 
+function GroupColumn({
+  group,
+  members,
+  groupCapacity,
+  config,
   onRemove,
+  onRemoveGroup,
   roleIcons,
   roleColors,
   activeId
-}: { 
-  group: GroupDef, 
-  members: Signup[], 
-  groupCapacity: number, 
+}: {
+  group: GroupDef,
+  members: Signup[],
+  groupCapacity: number,
   config: any,
   onRemove: (id: string) => void,
+  onRemoveGroup: () => void,
   roleIcons: Record<CharRole, React.ReactNode>,
   roleColors: Record<CharRole, string>,
   activeId: string | null
@@ -576,7 +579,7 @@ function GroupColumn({
         <div className="flex items-center gap-2 mb-2">
           <Users size={13} className="text-[#8b8b99] flex-shrink-0" />
           <span className="text-[0.82rem] font-['Changa_One'] uppercase tracking-wide text-[#e2e2e2] flex-1 truncate">
-            {group.label ?? `Grupo ${group.group_number}`}
+            {group.label ?? `Roster ${group.group_number}`}
           </span>
           <span
             className={`font-['Changa_One'] text-[0.75rem] px-1.5 py-0.5 rounded-[3px] flex-shrink-0
@@ -589,6 +592,15 @@ function GroupColumn({
           >
             {members.length}/{groupCapacity}
           </span>
+          <button
+            onClick={onRemoveGroup}
+            className="flex-shrink-0 p-0.5 transition-colors text-red-400"
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#ff6b6b'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#444'; }}
+            title="Eliminar roster"
+          >
+            <X size={13} />
+          </button>
         </div>
 
         <div className="h-[3px] bg-[#1a1a1e] rounded-full overflow-hidden mb-2">

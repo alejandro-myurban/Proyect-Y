@@ -8,6 +8,7 @@ import {
   ADMIN_EMAILS,
   getAvailableRoles,
   type RaidType,
+  type RaidTypeCombo,
   type CharRole,
 } from '../components/calendar/constants';
 import { CreateRaidPanel } from '../components/calendar/CreateRaidPanel';
@@ -76,7 +77,9 @@ export default function Calendar() {
         .order('date', { ascending: true });
 
       if (error) throw error;
-      setRaids((data as Raid[]) ?? []);
+      const fresh = (data as Raid[]) ?? [];
+      setRaids(fresh);
+      return fresh;
     } catch (err: any) {
       console.error('Error fetching raids:', err.message);
     } finally {
@@ -103,12 +106,12 @@ export default function Calendar() {
 
   // ── Raid CRUD ──────────────────────────────────────────────────────────────
 
-  const handleCreateRaid = async (raidType: RaidType, date: string) => {
-    const title = { karazhan: 'Karazhan', gruul: 'Guarida de Gruul', magtheridon: 'Guarida de Magtheridon' }[raidType];
+  const handleCreateRaid = async (raidType: RaidType | RaidTypeCombo, date: string, title: string) => {
+    const raidTypeValue = Array.isArray(raidType) ? raidType.join('+') : raidType;
     const { error } = await supabase.from('raids').insert([{
       title,
       date,
-      raid_type: raidType,
+      raid_type: raidTypeValue,
       status: 'active',
     }]);
     if (error) {
@@ -300,17 +303,20 @@ export default function Calendar() {
     if (!groupOrganizerRaid) return;
     const raidId = groupOrganizerRaid.id;
 
-    // 1. Upsert group definitions
-    const groupInserts = groupDefs.map((g) => ({
-      ...(g.id ? { id: g.id } : {}),
+    const hasMultipleGroups = groupDefs.length > 1;
+
+    // First, delete existing groups and recreate (simpler approach)
+    await supabase.from('raid_groups').delete().eq('raid_id', raidId);
+
+    const groupInserts = groupDefs.map((g, index) => ({
       raid_id: raidId,
-      group_number: g.group_number,
-      label: g.label,
+      group_number: index + 1,
+      label: hasMultipleGroups ? `Roster ${index + 1}` : `Roster ${index + 1}`,
     }));
 
     const { data: savedGroups, error: groupError } = await supabase
       .from('raid_groups')
-      .upsert(groupInserts, { onConflict: 'id' })
+      .insert(groupInserts)
       .select();
 
     if (groupError) {
@@ -323,22 +329,49 @@ export default function Calendar() {
       throw groupError;
     }
 
-    // 2. Build a map from group_number → new DB id
-    const groupNumToId: Record<number, string> = {};
+    // Build map from group_number → DB id (use g.group_number, not idx)
+    const groupIndexToId: Record<number, string> = {};
     (savedGroups ?? []).forEach((g: any) => {
-      groupNumToId[g.group_number] = g.id;
+      groupIndexToId[g.group_number] = g.id;
     });
+    console.log('[Groups] savedGroups:', savedGroups);
+    console.log('[Groups] groupIndexToId:', groupIndexToId);
+    console.log('[Groups] assignments to save:', assignments);
 
-    // 3. Update signups
+    // Update signups with correct group IDs
     try {
-      await Promise.all(
-        assignments.map((a) =>
-          supabase
-            .from('signups')
-            .update({ raid_group_id: a.group_number ? groupNumToId[a.group_number] ?? null : null })
-            .eq('id', a.signup_id)
-        )
-      );
+      // First, clear all raid_group_id for this raid's signups
+      const signupIds = groupOrganizerRaid.signups.map((s: any) => s.id);
+      if (signupIds.length > 0) {
+        const { error: clearError } = await supabase
+          .from('signups')
+          .update({ raid_group_id: null })
+          .in('id', signupIds);
+        console.log('[Groups] clear signups error:', clearError);
+      }
+
+      // Then assign to groups
+      for (const a of assignments) {
+        console.log('[Groups] processing assignment:', a);
+        if (a.group_number !== null && a.group_number !== undefined) {
+          const groupId = groupIndexToId[a.group_number];
+          console.log(`[Groups] signup ${a.signup_id} → group_number ${a.group_number} → groupId ${groupId}`);
+          if (groupId) {
+            const { error: updateError, data: updateData } = await supabase
+              .from('signups')
+              .update({ raid_group_id: groupId })
+              .eq('id', a.signup_id)
+              .select();
+            console.log(`[Groups] update result for ${a.signup_id}:`, { updateData, updateError });
+
+            if (updateError) {
+              console.error('Error updating signup:', a.signup_id, updateError);
+            }
+          } else {
+            console.warn(`[Groups] No groupId found for group_number ${a.group_number}`);
+          }
+        }
+      }
 
       sileo.success({
         title: 'Configuración guardada',
@@ -355,7 +388,13 @@ export default function Calendar() {
       });
     }
 
-    await fetchRaids();
+    const freshRaids = await fetchRaids();
+
+    // Update the groupOrganizerRaid with fresh data
+    const updatedRaid = freshRaids?.find(r => r.id === raidId);
+    if (updatedRaid) {
+      setGroupOrganizerRaid(updatedRaid);
+    }
   };
 
   // ── Derived data ───────────────────────────────────────────────────────────
@@ -505,7 +544,7 @@ export default function Calendar() {
         <GroupOrganizerModal
           open={!!groupOrganizerRaid}
           onClose={() => setGroupOrganizerRaid(null)}
-          raid={groupOrganizerRaid}
+          raid={raids.find(r => r.id === groupOrganizerRaid.id) || groupOrganizerRaid}
           onSave={handleSaveGroups}
         />
       )}
