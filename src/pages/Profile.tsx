@@ -15,7 +15,9 @@ import {
 } from '../components/calendar/constants';
 import { sileo } from 'sileo';
 import { AvatarPickerModal } from '../components/profile/AvatarPickerModal';
+import { WOW_AVATARS } from '../components/profile/AvatarPickerModal';
 import { CLASS_BANNERS } from '../components/profile/classBanners';
+import { WowModelViewer } from '../components/profile/WowModelViewer';
 import type { UserCharacter, Signup, LootEntry, Raid } from '../types/calendar';
 
 const ROLE_ICONS: Record<CharRole, React.ReactNode> = {
@@ -46,6 +48,8 @@ export default function Profile() {
   const [charRole, setCharRole] = useState<CharRole>('DPS');
   const [saving, setSaving] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [modelRace, setModelRace] = useState<string | null>(null);
+  const [modelGender, setModelGender] = useState<0 | 1>(0);
 
   const [mySignups, setMySignups] = useState<(Signup & { raid: Pick<Raid, 'id' | 'title' | 'date' | 'raid_type' | 'status' | 'raid_groups'> })[]>([]);
   const [myLoot, setMyLoot] = useState<(LootEntry & { raid_title: string })[]>([]);
@@ -82,6 +86,8 @@ export default function Profile() {
       setCharacter(data);
       setCharName(data.char_name);
       setCharClass(data.char_class);
+      if (data.model_race) setModelRace(data.model_race);
+      if (data.model_gender !== undefined && data.model_gender !== null) setModelGender(data.model_gender as 0 | 1);
       setCharRole(data.char_role as CharRole);
     }
   };
@@ -172,6 +178,13 @@ export default function Profile() {
   const pastSignups = mySignups.filter((s) => (s.raid as any)?.status === 'closed');
 
   if (!user) return null;
+
+  const handleSaveModel = async (race: string, gender: 0 | 1) => {
+    if (!user) return;
+    setModelRace(race);
+    setModelGender(gender);
+    await supabase.from('user_characters').update({ model_race: race, model_gender: gender }).eq('user_id', user.id);
+  };
 
   const classColor = character ? (CLASS_COLORS[character.char_class] ?? '#86b518') : '#86b518';
 
@@ -419,6 +432,10 @@ export default function Profile() {
           </div>
         )}
       </div>
+
+      {/* ── Dressing Room ── */}
+      <DressingRoom modelRace={modelRace} modelGender={modelGender} onSave={handleSaveModel} />
+
       </div>{/* closes max-w container */}
 
       <AnimatePresence>
@@ -430,6 +447,103 @@ export default function Profile() {
           />
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+const RACE_OPTIONS = WOW_AVATARS.filter(a => a.faction !== 'Bosses' && a.id.endsWith('_male'));
+
+function DressingRoom({ modelRace, modelGender, onSave }: {
+  modelRace: string | null;
+  modelGender: 0 | 1;
+  onSave: (race: string, gender: 0 | 1) => void;
+}) {
+  // Derive the current avatarId from race + gender
+  const baseRace = modelRace?.replace(/_male$|_female$/, '') ?? null;
+  const avatarId = baseRace ? `${baseRace}_${modelGender === 0 ? 'male' : 'female'}` : null;
+
+  const selectRace = (baseId: string) => {
+    const fullId = `${baseId}_${modelGender === 0 ? 'male' : 'female'}`;
+    onSave(fullId, modelGender);
+  };
+
+  const selectGender = (g: 0 | 1) => {
+    if (!baseRace) { onSave('', g); return; }
+    const fullId = `${baseRace}_${g === 0 ? 'male' : 'female'}`;
+    onSave(fullId, g);
+  };
+
+  return (
+    <div className="glass-panel p-6 mt-6">
+      <h3 className="flex items-center gap-2 text-white text-[1rem] border-b border-[#2a2a33] pb-3 mb-5">
+        <span className="text-[#86b518]">⚔</span> Dressing Room
+      </h3>
+
+      <div className="flex gap-6 max-[700px]:flex-col">
+        {/* Selector */}
+        <div className="flex flex-col gap-4 flex-shrink-0 w-[220px] max-[700px]:w-full">
+          {/* Gender */}
+          <div>
+            <p className="text-[0.68rem] uppercase tracking-widest text-[#8b8b99] font-['Changa_One'] mb-2">Género</p>
+            <div className="flex gap-2">
+              {([0, 1] as const).map((g) => (
+                <button
+                  key={g}
+                  onClick={() => selectGender(g)}
+                  className={`flex-1 py-1.5 rounded-[3px] border text-[0.75rem] font-['Changa_One'] uppercase transition-all
+                    ${modelGender === g ? 'bg-[#86b518] border-[#86b518] text-white' : 'border-[#2a2a33] text-[#8b8b99] hover:text-white hover:border-[rgba(255,255,255,0.2)]'}`}
+                >
+                  {g === 0 ? 'Masculino' : 'Femenino'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Race grid — one per race, portrait changes with gender */}
+          <div>
+            <p className="text-[0.68rem] uppercase tracking-widest text-[#8b8b99] font-['Changa_One'] mb-2">Raza</p>
+            <div className="grid grid-cols-5 gap-1.5">
+              {RACE_OPTIONS.map((r) => {
+                const base = r.id.replace('_male', '');
+                const isSelected = baseRace === base;
+                const portraitId = `${base}_${modelGender === 0 ? 'male' : 'female'}`;
+                const portrait = WOW_AVATARS.find(a => a.id === portraitId)?.url ?? r.url;
+                return (
+                  <button key={base} onClick={() => selectRace(base)} title={r.label} className="group">
+                    <div
+                      className="aspect-square rounded-[3px] overflow-hidden border-2 transition-all"
+                      style={{
+                        borderColor: isSelected ? '#86b518' : 'transparent',
+                        boxShadow: isSelected ? '0 0 8px rgba(134,181,24,0.5)' : 'none',
+                      }}
+                    >
+                      <img src={portrait} alt={r.label} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {avatarId && (
+            <p className="text-[0.7rem] text-[#555] text-center">
+              Arrastra para rotar · Scroll para zoom
+            </p>
+          )}
+        </div>
+
+        {/* Model viewer */}
+        <div className="flex-1 flex items-center justify-center rounded-[4px] border border-[#2a2a33] overflow-hidden bg-[rgba(0,0,0,0.3)] min-h-[460px]">
+          {avatarId ? (
+            <WowModelViewer avatarId={avatarId} width={340} height={460} />
+          ) : (
+            <div className="flex flex-col items-center gap-3 text-center py-12 px-6">
+              <span className="text-4xl opacity-20">⚔</span>
+              <p className="text-[0.8rem] text-[#555]">Selecciona una raza para ver tu modelo</p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
