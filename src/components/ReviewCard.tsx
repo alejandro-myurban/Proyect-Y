@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 interface ReviewCardProps {
-  img: string;
+  img?: string;
   name: string;
   username: string;
   body: string;
@@ -18,7 +18,13 @@ export function ReviewCard({ img, name, username, body }: ReviewCardProps) {
     >
       <div className="flex flex-row items-center gap-3">
         <div className="relative">
-          <img className="rounded-full border border-primary/20" width="40" height="40" alt={name} src={img} />
+          <img 
+            className="rounded-full border border-primary/20" 
+            width="40" 
+            height="40" 
+            alt={name} 
+            src={img || `https://avatar.vercel.sh/${name}`} 
+          />
           <div className="absolute -bottom-1 -right-1 size-3 bg-primary rounded-full border-2 border-[#0a0a0c]" />
         </div>
         <div className="flex flex-col">

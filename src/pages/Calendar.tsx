@@ -33,6 +33,23 @@ export default function Calendar() {
   const [view, setView] = useState<View>('upcoming');
   const [currentCharacter, setCurrentCharacter] = useState<UserCharacter | null>(null);
 
+  // Cargar personaje del usuario al iniciar
+  useEffect(() => {
+    const loadCharacter = async () => {
+      if (!user) {
+        setCurrentCharacter(null);
+        return;
+      }
+      const { data } = await supabase
+        .from('user_characters')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      if (data) setCurrentCharacter(data);
+    };
+    loadCharacter();
+  }, [user]);
+
   // Signup modal state — kept in sync with latest raids data
   const [signupRaid, setSignupRaid] = useState<Raid | null>(null);
 

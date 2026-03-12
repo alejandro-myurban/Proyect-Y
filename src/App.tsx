@@ -5,6 +5,8 @@ import Guides from './pages/Guides';
 import LootSystem from './pages/LootSystem';
 import Calendar from './pages/Calendar';
 import Profile from './pages/Profile';
+import AddVoice from './pages/AddVoice';
+import AdminVoices from './pages/AdminVoices';
 
 import { Toaster } from "sileo";
 import { AuthProvider } from './context/AuthContext';
@@ -33,6 +35,8 @@ function App() {
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/login" element={<Login />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/añadir-voz" element={<AddVoice />} />
+          <Route path="/admin/voces" element={<AdminVoices />} />
         </Routes>
       </div>
       <Footer />

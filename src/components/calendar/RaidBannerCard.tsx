@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   CheckCircle,
   Trash2,
@@ -14,6 +14,8 @@ import {
   PlusCircle,
   X,
   ChevronDown,
+  MessageCircle,
+  Send,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { slugClass, RAID_CONFIG, CLASS_COLORS, getClassIcon, type CharRole } from './constants';
@@ -21,6 +23,7 @@ import { RAID_CONFIG as _RC } from './constants';
 import type { Raid, Signup, UserCharacter } from '../../types/calendar';
 import ItemSelector from '../ItemSelector';
 import { LootEntryModal } from './LootEntryModal';
+import { supabase } from '../../lib/supabase';
 
 interface RaidBannerCardProps {
   raid: Raid;
@@ -35,7 +38,7 @@ interface RaidBannerCardProps {
   onCloseRaid: (raid: Raid) => void;
 }
 
-type Tab = 'roster' | 'loot' | 'grupos';
+type Tab = 'roster' | 'loot' | 'grupos' | 'chat';
 
 const ROLE_COLORS: Record<CharRole, string> = {
   Tanque: '#5bc0de',
@@ -89,6 +92,63 @@ export function RaidBannerCard({
   const [showItemSelector, setShowItemSelector] = useState(false);
   const [pendingItem, setPendingItem] = useState<any>(null);
 
+  // Chat state
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [loadingChat, setLoadingChat] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Load chat messages
+  useEffect(() => {
+    if (activeTab !== 'chat') return;
+    
+    const loadChat = async () => {
+      setLoadingChat(true);
+      const { data } = await supabase
+        .from('raid_chat')
+        .select('*')
+        .eq('raid_id', raid.id)
+        .order('created_at', { ascending: true })
+        .limit(100);
+      if (data) setChatMessages(data);
+      setLoadingChat(false);
+    };
+    loadChat();
+
+    // Subscribe to realtime
+    const channel = supabase
+      .channel(`raid_chat_${raid.id}`)
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'raid_chat',
+        filter: `raid_id=eq.${raid.id}`
+      }, (payload) => {
+        setChatMessages((prev) => [...prev, payload.new]);
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [activeTab, raid.id]);
+
+  // Scroll to bottom on new message
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
+
+  const sendMessage = async () => {
+    if (!chatInput.trim() || !currentUserId) return;
+    const username = currentCharacter?.char_name || 'Unknown';
+    
+    await supabase.from('raid_chat').insert({
+      raid_id: raid.id,
+      user_id: currentUserId,
+      username,
+      message: chatInput.trim(),
+    });
+    setChatInput('');
+  };
+
   const config = raid.raid_type ? RAID_CONFIG[raid.raid_type] : null;
   const loot = raid.loot ?? [];
   const signups = raid.signups ?? [];
@@ -115,11 +175,12 @@ export function RaidBannerCard({
   const accentColor = config?.accentColor ?? '#86b518';
   const borderColor = config?.borderColor ?? 'rgba(134,181,24,0.6)';
 
-  const tabs: Tab[] = ['roster', 'loot', ...(isAdmin ? ['grupos' as Tab] : [])];
+  const tabs: Tab[] = ['roster', 'loot', 'chat', ...(isAdmin ? ['grupos' as Tab] : [])];
   const tabLabels: Record<Tab, { icon: React.ReactNode; label: string; badge?: number }> = {
     roster: { icon: <Users size={13} />, label: 'Roster', badge: signups.length },
     loot: { icon: <Package size={13} />, label: 'Botín', badge: loot.length },
     grupos: { icon: <Settings2 size={13} />, label: 'Grupos', badge: raid.raid_groups.length },
+    chat: { icon: <MessageCircle size={13} />, label: 'Chat' },
   };
 
   return (
@@ -216,25 +277,23 @@ export function RaidBannerCard({
                     </button>
                   </>
                 )}
-                {!isAdmin && !isPast && (
-                  <>
-                    {isSignedUp ? (
-                      <div className="flex items-center gap-1.5 text-[0.8rem] font-['Changa_One'] uppercase"
-                        style={{ color: accentColor }}>
-                        <UserCheck size={14} />
-                        {myGroup ? `Grupo ${myGroup.group_number}` : 'Apuntado'}
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => onSignUp(raid.id)}
-                        className="btn btn-primary btn-sm flex items-center gap-1.5"
-                        style={{ background: accentColor, borderColor: accentColor }}
-                      >
-                        <CheckCircle size={13} /> Apuntarse
-                      </button>
-                    )}
-                  </>
-                )}
+                {isSignedUp ? (
+                  <div className="flex items-center gap-1.5 text-[0.8rem] font-['Changa_One'] uppercase"
+                    style={{ color: accentColor }}>
+                    <UserCheck size={14} />
+                    {myGroup ? `Grupo ${myGroup.group_number}` : 'Apuntado'}
+                  </div>
+                ) : !isPast && currentCharacter ? (
+                  <button
+                    onClick={() => onSignUp(raid.id)}
+                    className="btn btn-primary btn-sm flex items-center gap-1.5"
+                    style={{ background: accentColor, borderColor: accentColor }}
+                  >
+                    <CheckCircle size={13} /> Apuntarse
+                  </button>
+                ) : !isPast ? (
+                  <p className="text-[0.75rem] text-[#555]">Crea un personaje para apuntarte</p>
+                ) : null}
                 {isPast && raid.warcraft_logs_url && (
                   <a
                     href={raid.warcraft_logs_url}
@@ -339,6 +398,73 @@ export function RaidBannerCard({
                     onAddDrop={() => setShowItemSelector(true)}
                     onRemoveDrop={(lootId) => onRemoveLoot(raid.id, lootId)}
                   />
+                )}
+                {activeTab === 'chat' && (
+                  <div className="flex flex-col h-[320px]">
+                    <div className="flex-1 overflow-y-auto space-y-2 mb-3 pr-2">
+                      {loadingChat ? (
+                        <p className="text-[0.8rem] text-[#555] text-center py-4">Cargando...</p>
+                      ) : chatMessages.length === 0 ? (
+                        <p className="text-[0.8rem] text-[#555] text-center py-4">No hay mensajes. ¡Sé el primero!</p>
+                      ) : (
+                        chatMessages.map((msg) => {
+                          const isMe = msg.user_id === currentUserId;
+                          // Buscar clase del personaje en los signups del raid
+                          const signup = signups.find(s => s.name === msg.username);
+                          const charClass = signup?.class;
+                          const classColor = charClass ? CLASS_COLORS[charClass as CharRole] : '#8b8b99';
+                          
+                          return (
+                            <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                              <div className={`max-w-[80%] px-3 py-2 rounded-[4px] text-[0.8rem] ${
+                                isMe 
+                                  ? 'bg-[rgba(134,181,24,0.2)] border border-[rgba(134,181,24,0.3)]' 
+                                  : 'bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)]'
+                              }`}>
+                                <p className="text-[#8b8b99] text-[0.7rem] mb-0.5 flex items-center gap-1.5">
+                                  {charClass && (
+                                    <img 
+                                      src={getClassIcon(charClass)} 
+                                      alt={charClass}
+                                      className="w-4 h-4 rounded-[2px]"
+                                    />
+                                  )}
+                                  <span style={{ color: classColor }}>{msg.username}</span>
+                                </p>
+                                <p className="text-white">{msg.message}</p>
+                                <p className="text-[#444] text-[0.6rem] mt-1">
+                                  {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                      <div ref={chatEndRef} />
+                    </div>
+                    {currentUserId ? (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={chatInput}
+                          onChange={(e) => setChatInput(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+                          placeholder="Escribe un mensaje..."
+                          className="input-field flex-1 text-[0.85rem]"
+                          maxLength={500}
+                        />
+                        <button
+                          onClick={sendMessage}
+                          disabled={!chatInput.trim()}
+                          className="btn btn-primary px-3"
+                        >
+                          <Send size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-[0.75rem] text-[#555] text-center">Inicia sesión para chatear</p>
+                    )}
+                  </div>
                 )}
                 {activeTab === 'grupos' && isAdmin && (
                   <GruposTab

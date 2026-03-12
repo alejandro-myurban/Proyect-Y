@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogIn, Mail, Lock, Chrome, Loader2, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -18,8 +18,18 @@ function Login() {
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [rememberMe, setRememberMe] = useState(false);
     const { signIn, signUp, signInWithGoogle } = useAuth();
     const navigate = useNavigate();
+
+    // Cargar credenciales guardadas
+    useEffect(() => {
+        const savedEmail = localStorage.getItem('saved_email');
+        const savedPassword = localStorage.getItem('saved_password');
+        if (savedEmail) setEmail(savedEmail);
+        if (savedPassword) setPassword(savedPassword);
+        if (savedEmail && savedPassword) setRememberMe(true);
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -42,6 +52,15 @@ function Login() {
                     description: 'El usuario o la contraseña son incorrectos.' 
                 });
             } else if (data.user || data.session) {
+                // Guardar credenciales si "recordarme" está marcado
+                if (rememberMe) {
+                    localStorage.setItem('saved_email', email);
+                    localStorage.setItem('saved_password', password);
+                } else {
+                    localStorage.removeItem('saved_email');
+                    localStorage.removeItem('saved_password');
+                }
+                
                 sileo.success({ 
                     styles: {
                         title: "text-white!",
@@ -140,6 +159,20 @@ function Login() {
                                         />
                                     </div>
                                 </div>
+                                {!isSignUp && (
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="checkbox"
+                                            id="remember"
+                                            checked={rememberMe}
+                                            onChange={(e) => setRememberMe(e.target.checked)}
+                                            className="w-4 h-4 rounded border-border/50 bg-background/50"
+                                        />
+                                        <Label htmlFor="remember" className="text-sm text-muted-foreground cursor-pointer">
+                                            Recordarme
+                                        </Label>
+                                    </div>
+                                )}
                                 <Button type="submit" className="w-full h-11 font-semibold group relative overflow-hidden shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:shadow-[0_0_30px_rgba(var(--primary),0.4)] transition-all" disabled={loading}>
                                     <div className="absolute inset-0 bg-gradient-to-r from-primary-foreground/0 via-primary-foreground/10 to-primary-foreground/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                                     {loading ? (
