@@ -297,6 +297,16 @@ export default function Calendar() {
     }
   };
 
+  const handleCancelSignup = async (signupId: string) => {
+    const { error } = await supabase.from('signups').delete().eq('id', signupId);
+    if (error) {
+      sileo.error({ title: 'Error al desapuntarse', description: error.message, fill: 'black', styles: { title: 'text-white!', description: 'text-white/75!' } });
+    } else {
+      sileo.success({ title: 'Desapuntado correctamente', fill: 'black', styles: { title: 'text-white!', description: 'text-white/75!' } });
+      await fetchRaids();
+    }
+  };
+
   // ── Groups ─────────────────────────────────────────────────────────────────
 
   const handleSaveGroups = async (assignments: GroupAssignment[], groupDefs: GroupDef[]) => {
@@ -500,6 +510,7 @@ export default function Calendar() {
                       onRemoveLoot={handleRemoveLoot}
                       onOpenGroupOrganizer={setGroupOrganizerRaid}
                       onCloseRaid={setCloseRaidTarget}
+                      onCancelSignup={handleCancelSignup}
                     />
                   </motion.div>
                 ))}

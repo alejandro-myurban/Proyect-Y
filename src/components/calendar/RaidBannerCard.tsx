@@ -35,6 +35,7 @@ interface RaidBannerCardProps {
   onRemoveLoot: (raidId: string, lootId: string) => void;
   onOpenGroupOrganizer: (raid: Raid) => void;
   onCloseRaid: (raid: Raid) => void;
+  onCancelSignup: (signupId: string) => void;
 }
 
 type Tab = 'roster' | 'loot' | 'grupos' | 'chat';
@@ -85,6 +86,7 @@ export function RaidBannerCard({
   onRemoveLoot,
   onOpenGroupOrganizer,
   onCloseRaid,
+  onCancelSignup,
 }: RaidBannerCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('roster');
@@ -298,15 +300,27 @@ export function RaidBannerCard({
                       onClick={() => onDeleteRaid(raid.id)}
                       className="btn btn-danger btn-sm flex items-center gap-1.5 text-[0.75rem]"
                     >
-                      <Trash2 size={12} />
+                      <Trash2 size={23} />
                     </button>
                   </>
                 )}
                 {isSignedUp ? (
-                  <div className="flex items-center gap-1.5 text-[0.8rem] font-['Changa_One'] uppercase"
-                    style={{ color: accentColor }}>
-                    <UserCheck size={14} />
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 text-[0.8rem] font-['Changa_One'] uppercase"
+                      style={{ color: accentColor }}>
+                      <UserCheck size={14} />
                       {myGroup ? `Roster ${myGroup.group_number}` : 'Apuntado'}
+                    </div>
+                    {!isPast && (
+                      <button
+                        onClick={() => mySignup && onCancelSignup(mySignup.id)}
+                        className="btn btn-sm flex items-center gap-1 text-[0.72rem]"
+                        style={{ borderColor: '#c0392b', color: '#c0392b' }}
+                        title="Desapuntarse"
+                      >
+                        <X size={11} /> Cancelar
+                      </button>
+                    )}
                   </div>
                 ) : !isPast && currentCharacter ? (
                   <button
