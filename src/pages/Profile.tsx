@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Edit2, Check, Shield, Heart, Swords, CalendarDays, Package, LogOut, UserCircle2, MessageCircle, Settings2 } from 'lucide-react';
+import { Edit2, Check, Shield, Heart, Swords, CalendarDays, Package, LogOut, UserCircle2, Settings2, Camera } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -9,9 +10,12 @@ import {
   getAvailableRoles,
   slugClass,
   getClassIcon,
+  CLASS_COLORS,
   type CharRole,
 } from '../components/calendar/constants';
 import { sileo } from 'sileo';
+import { AvatarPickerModal } from '../components/profile/AvatarPickerModal';
+import { CLASS_BANNERS } from '../components/profile/classBanners';
 import type { UserCharacter, Signup, LootEntry, Raid } from '../types/calendar';
 
 const ROLE_ICONS: Record<CharRole, React.ReactNode> = {
@@ -31,7 +35,7 @@ function formatDate(dateStr: string) {
 }
 
 export default function Profile() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, setAvatarUrl: setGlobalAvatarUrl } = useAuth();
   const navigate = useNavigate();
   const isAdmin = !!user && ADMIN_EMAILS.includes(user.email ?? '');
 
@@ -41,6 +45,7 @@ export default function Profile() {
   const [charClass, setCharClass] = useState<string>(CLASSES[0]);
   const [charRole, setCharRole] = useState<CharRole>('DPS');
   const [saving, setSaving] = useState(false);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
 
   const [mySignups, setMySignups] = useState<(Signup & { raid: Pick<Raid, 'id' | 'title' | 'date' | 'raid_type' | 'status' | 'raid_groups'> })[]>([]);
   const [myLoot, setMyLoot] = useState<(LootEntry & { raid_title: string })[]>([]);
@@ -146,46 +151,122 @@ export default function Profile() {
     }
   };
 
+  const handleSelectAvatar = async (url: string) => {
+    if (!user) return;
+    const { error } = await supabase
+      .from('user_characters')
+      .update({ avatar_url: url })
+      .eq('user_id', user.id);
+    if (error) {
+      sileo.error({ title: 'Error al guardar avatar', description: error.message, fill: 'black', styles: { title: 'text-white!', description: 'text-white/75!' } });
+      return;
+    }
+    setCharacter((prev) => prev ? { ...prev, avatar_url: url } : prev);
+    setGlobalAvatarUrl(url);
+    setShowAvatarPicker(false);
+    sileo.success({ title: 'Avatar actualizado', fill: 'black', styles: { title: 'text-white!', description: 'text-white/75!' } });
+  };
+
   const userInitial = user?.email?.charAt(0).toUpperCase() ?? '?';
   const upcomingSignups = mySignups.filter((s) => (s.raid as any)?.status !== 'closed');
   const pastSignups = mySignups.filter((s) => (s.raid as any)?.status === 'closed');
 
   if (!user) return null;
 
+  const classColor = character ? (CLASS_COLORS[character.char_class] ?? '#86b518') : '#86b518';
+
   return (
-    <div className="pt-24 pb-16 max-w-[900px] mx-auto px-6">
-      {/* ── Profile header ── */}
-      <div className="glass-panel p-8 mb-6 flex items-center gap-6 flex-wrap">
+    <div className="pb-16 pt-20">
+      {/* ── Banner ── */}
+      <div
+        className="relative w-full overflow-hidden"
+        style={{ height: '260px' }}
+      >
+        {/* Class artwork background */}
+        {character?.char_class && CLASS_BANNERS[character.char_class] && (
+          <img
+            src={CLASS_BANNERS[character.char_class]}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover object-center"
+            onError={(e: any) => { e.target.style.display = 'none'; }}
+          />
+        )}
+        {/* Color gradient overlay */}
         <div
-          className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 border border-[#2a2a33]"
-          style={{ background: 'rgba(134,181,24,0.1)' }}
-        >
-          <span className="font-['Changa_One'] text-[1.8rem] text-[#86b518]">{userInitial}</span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-[1.4rem] text-white mb-0.5">
-            {character?.char_name ?? <span className="text-[#8b8b99]">Sin personaje</span>}
-          </h1>
-          <p className="text-[0.85rem] text-[#8b8b99]">{user.email}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {isAdmin && (
+          className="absolute inset-0"
+          style={{
+            background: `linear-gradient(135deg, #0a0a0d 0%, ${classColor}18 50%, #0a0a0d 100%)`,
+          }}
+        />
+        {/* Atmospheric grid lines */}
+        <div
+          className="absolute inset-0 opacity-[0.04]"
+          style={{
+            backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
+            backgroundSize: '40px 40px',
+          }}
+        />
+        {/* Glow orb */}
+        <div
+          className="absolute top-[-60px] left-[15%] w-[340px] h-[340px] rounded-full blur-[90px] opacity-20 pointer-events-none"
+          style={{ background: classColor }}
+        />
+        {/* Bottom fade */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-24"
+          style={{ background: 'linear-gradient(to bottom, transparent, #0d0d10)' }}
+        />
+        {/* Content */}
+        <div className="absolute inset-0 flex items-end px-8 pb-6 max-w-[900px] mx-auto left-0 right-0">
+          <div className="flex items-end gap-5">
+            {/* Avatar */}
             <button
-              onClick={() => navigate('/admin/voces')}
-              className="btn btn-sm flex items-center gap-2 text-[0.8rem]"
-              style={{ background: '#f0a500', borderColor: '#f0a500', color: '#000' }}
+              onClick={() => setShowAvatarPicker(true)}
+              className="relative group flex-shrink-0 w-20 h-20 rounded-full overflow-hidden border-2 transition-all duration-200"
+              style={{ borderColor: classColor, boxShadow: `0 0 18px ${classColor}55` }}
+              title="Cambiar avatar"
             >
-              <Settings2 size={13} /> Voces
+              {character?.avatar_url ? (
+                <img src={character.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center" style={{ background: `${classColor}18` }}>
+                  <span className="font-['Changa_One'] text-[2rem]" style={{ color: classColor }}>{userInitial}</span>
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                <Camera size={18} className="text-white" />
+              </div>
             </button>
-          )}
-          <button
-            onClick={() => { signOut(); navigate('/'); }}
-            className="btn btn-sm flex items-center gap-2 text-[0.8rem] text-[#8b8b99]"
-          >
-            <LogOut size={13} /> Cerrar Sesión
-          </button>
+            {/* Name + email */}
+            <div className="mb-1">
+              <h1 className="text-[1.6rem] text-white font-['Changa_One'] uppercase leading-none mb-1">
+                {character?.char_name ?? <span className="text-[#8b8b99] text-[1.2rem]">Sin personaje</span>}
+              </h1>
+              <p className="text-[0.8rem] text-[#8b8b99]">{user.email}</p>
+            </div>
+          </div>
+          {/* Actions top-right */}
+          <div className="ml-auto flex items-center gap-2 mb-1">
+            {isAdmin && (
+              <button
+                onClick={() => navigate('/admin/voces')}
+                className="btn btn-sm flex items-center gap-2 text-[0.8rem]"
+                style={{ background: '#f0a500', borderColor: '#f0a500', color: '#000' }}
+              >
+                <Settings2 size={13} /> Voces
+              </button>
+            )}
+            <button
+              onClick={() => { signOut(); navigate('/'); }}
+              className="btn btn-sm flex items-center gap-2 text-[0.8rem] text-[#8b8b99]"
+            >
+              <LogOut size={13} /> Cerrar Sesión
+            </button>
+          </div>
         </div>
       </div>
+
+      <div className="max-w-[900px] mx-auto px-6 mt-4">
 
       <div className="grid grid-cols-[1fr_1fr] gap-6 max-[700px]:grid-cols-1">
         {/* ── Character card ── */}
@@ -338,6 +419,17 @@ export default function Profile() {
           </div>
         )}
       </div>
+      </div>{/* closes max-w container */}
+
+      <AnimatePresence>
+        {showAvatarPicker && (
+          <AvatarPickerModal
+            currentUrl={character?.avatar_url ?? null}
+            onSelect={handleSelectAvatar}
+            onClose={() => setShowAvatarPicker(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

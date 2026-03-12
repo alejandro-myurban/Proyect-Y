@@ -75,7 +75,7 @@ export default function AddVoice() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0c] flex flex-col">
+    <div className="min-h-screen bg-[#0a0a0c] flex flex-col pt-20">
       <div className="flex-1 flex flex-col items-center justify-center py-12 px-4">
         <div className="w-full max-w-xl">
           <button

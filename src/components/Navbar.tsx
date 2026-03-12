@@ -2,11 +2,10 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, Skull, LogIn, LogOut, UserCircle2, CalendarDays } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from './ui/button';
-
 function Navbar() {
-    const { user, signOut } = useAuth();
+    const { user, signOut, avatarUrl } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
     const avatarRef = useRef<HTMLDivElement>(null);
@@ -99,7 +98,8 @@ function Navbar() {
                             <>
                                 <div className="flex items-center gap-3 self-center mb-2">
                                     <Avatar className="size-10 border border-[#2a2a33] cursor-pointer">
-                                        <AvatarFallback className="bg-[rgba(134,181,24,0.1)] text-[#86b518] font-['Changa_One'] ">{userInitial}</AvatarFallback>
+                                        <AvatarImage src={avatarUrl ?? undefined} className="object-cover" />
+                                        <AvatarFallback className="bg-[rgba(134,181,24,0.1)] text-[#86b518] font-['Changa_One']">{userInitial}</AvatarFallback>
                                     </Avatar>
                                     <span className="text-[0.8rem] text-[#8b8b99] truncate max-w-[180px]">{user.email}</span>
                                 </div>
@@ -139,6 +139,7 @@ function Navbar() {
                                     className="flex items-center gap-2 group focus:outline-none"
                                 >
                                     <Avatar className="size-9 border border-[#2a2a33] cursor-pointer transition-all duration-150 group-hover:border-[#86b518]/50 group-hover:shadow-[0_0_12px_rgba(134,181,24,0.15)]">
+                                        <AvatarImage src={avatarUrl ?? undefined} className="object-cover" />
                                         <AvatarFallback className="bg-[rgba(134,181,24,0.1)] text-[#86b518] font-['Changa_One'] text-[1rem]">
                                             {userInitial}
                                         </AvatarFallback>

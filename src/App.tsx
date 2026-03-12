@@ -27,7 +27,7 @@ function App() {
         position="top-center"
       />
       <Navbar />
-      <div className="min-h-screen pt-10">
+      <div className="min-h-screen">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/guides" element={<Guides />} />

@@ -55,8 +55,8 @@ export default function AdminVoices() {
   if (!isAdmin) return null;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0c] py-12 px-4">
-      <div className="max-w-3xl mx-auto">
+    <div className="min-h-screen bg-[#0a0a0c] pt-20 pb-12 px-4">
+      <div className="max-w-3xl mx-auto pt-10">
         <button
           onClick={() => navigate(-1)}
           className="flex items-center gap-2 text-white/60 hover:text-white mb-8 transition-colors"
