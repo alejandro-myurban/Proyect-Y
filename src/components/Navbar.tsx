@@ -103,7 +103,7 @@ function Navbar() {
                                     </Avatar>
                                     <span className="text-[0.8rem] text-[#8b8b99] truncate max-w-[180px]">{user.email}</span>
                                 </div>
-                                <Link to="/profile" onClick={() => setIsOpen(false)} className="btn w-full flex items-center justify-center gap-2">
+                                <Link to="/profile" onClick={() => setIsOpen(false)} className="btn cursor-pointer w-full flex items-center justify-center gap-2">
                                     <UserCircle2 size={14} /> Ver Perfil
                                 </Link>
                                 <button onClick={() => { signOut(); setIsOpen(false); }} className="btn w-full flex items-center justify-center gap-2 text-[#8b8b99]">
@@ -156,14 +156,14 @@ function Navbar() {
                                         {/* Menu items */}
                                         <button
                                             onClick={() => { setAvatarMenuOpen(false); navigate('/profile'); }}
-                                            className="w-full flex items-center gap-2.5 px-4 py-3 text-[0.82rem] text-[#e2e2e2] hover:bg-[rgba(255,255,255,0.05)] transition-colors text-left"
+                                            className="w-full cursor-pointer flex items-center gap-2.5 px-4 py-3 text-[0.82rem] text-[#e2e2e2] hover:bg-[rgba(255,255,255,0.05)] transition-colors text-left"
                                         >
                                             <UserCircle2 size={14} className="text-[#86b518]" />
                                             Ver Perfil
                                         </button>
                                         <button
                                             onClick={() => { setAvatarMenuOpen(false); signOut(); }}
-                                            className="w-full flex items-center gap-2.5 px-4 py-3 text-[0.82rem] text-[#8b8b99] hover:bg-[rgba(255,60,60,0.08)] hover:text-[#ff6b6b] transition-colors text-left border-t border-[#2a2a33]"
+                                            className="w-full cursor-pointer flex items-center gap-2.5 px-4 py-3 text-[0.82rem] text-[#8b8b99] hover:bg-[rgba(255,60,60,0.08)] hover:text-[#ff6b6b] transition-colors text-left border-t border-[#2a2a33]"
                                         >
                                             <LogOut size={14} />
                                             Cerrar Sesión

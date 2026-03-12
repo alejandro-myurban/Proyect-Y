@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Edit2, Check, Shield, Heart, Swords, CalendarDays, Package, LogOut, UserCircle2 } from 'lucide-react';
+import { Edit2, Check, Shield, Heart, Swords, CalendarDays, Package, LogOut, UserCircle2, MessageCircle, Settings2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import {
   CLASSES,
+  ADMIN_EMAILS,
   getAvailableRoles,
   slugClass,
   getClassIcon,
@@ -32,6 +33,7 @@ function formatDate(dateStr: string) {
 export default function Profile() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const isAdmin = !!user && ADMIN_EMAILS.includes(user.email ?? '');
 
   const [character, setCharacter] = useState<UserCharacter | null>(null);
   const [editing, setEditing] = useState(false);
@@ -166,12 +168,23 @@ export default function Profile() {
           </h1>
           <p className="text-[0.85rem] text-[#8b8b99]">{user.email}</p>
         </div>
-        <button
-          onClick={() => { signOut(); navigate('/'); }}
-          className="btn btn-sm flex items-center gap-2 text-[0.8rem] text-[#8b8b99]"
-        >
-          <LogOut size={13} /> Cerrar Sesión
-        </button>
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <button
+              onClick={() => navigate('/admin/voces')}
+              className="btn btn-sm flex items-center gap-2 text-[0.8rem]"
+              style={{ background: '#f0a500', borderColor: '#f0a500', color: '#000' }}
+            >
+              <Settings2 size={13} /> Voces
+            </button>
+          )}
+          <button
+            onClick={() => { signOut(); navigate('/'); }}
+            className="btn btn-sm flex items-center gap-2 text-[0.8rem] text-[#8b8b99]"
+          >
+            <LogOut size={13} /> Cerrar Sesión
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-[1fr_1fr] gap-6 max-[700px]:grid-cols-1">
