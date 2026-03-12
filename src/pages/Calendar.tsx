@@ -16,6 +16,7 @@ import { RaidBannerCard } from '../components/calendar/RaidBannerCard';
 import { SignupModal } from '../components/calendar/SignupModal';
 import { GroupOrganizerModal, type GroupAssignment, type GroupDef } from '../components/calendar/GroupOrganizerModal';
 import { CloseRaidModal } from '../components/calendar/CloseRaidModal';
+import { sileo } from 'sileo';
 import type { Raid, UserCharacter } from '../types/calendar';
 
 // Re-export types for backwards compatibility
@@ -93,15 +94,43 @@ export default function Calendar() {
       raid_type: raidType,
       status: 'active',
     }]);
-    if (error) throw error;
+    if (error) {
+      sileo.error({
+        title: 'Error al crear raid',
+        description: error.message,
+        fill: "black",
+        styles: { title: "text-white!", description: "text-white/75!" }
+      });
+      throw error;
+    }
+
+    sileo.success({
+      title: '¡Raid programada!',
+      description: `Se ha creado el evento: ${title}`,
+      fill: "black",
+      styles: { title: "text-white!", description: "text-white/75!" }
+    });
     await fetchRaids();
   };
 
   const handleDeleteRaid = async (id: string) => {
     if (!confirm('¿Seguro que quieres borrar este evento?')) return;
     const { error } = await supabase.from('raids').delete().eq('id', id);
-    if (error) alert('Error eliminando raid: ' + error.message);
-    else await fetchRaids();
+    if (error) {
+      sileo.error({
+        title: 'Error al eliminar raid',
+        description: error.message,
+        fill: "black",
+        styles: { title: "text-white!", description: "text-white/75!" }
+      });
+    } else {
+      sileo.success({
+        title: 'Raid eliminada',
+        fill: "black",
+        styles: { title: "text-white!", description: "text-white/75!" }
+      });
+      await fetchRaids();
+    }
   };
 
   const handleCloseRaid = async (warcraftLogsUrl: string) => {
@@ -111,8 +140,27 @@ export default function Calendar() {
       .update({ status: 'closed', warcraft_logs_url: warcraftLogsUrl || null })
       .eq('id', closeRaidTarget.id)
       .select();
-    if (error) throw new Error(error.message);
-    if (!data || data.length === 0) throw new Error('El UPDATE no afectó ninguna fila. Revisa las políticas RLS en Supabase (tabla raids, política UPDATE).');
+    if (error) {
+      sileo.error({
+        title: 'Error al cerrar raid',
+        description: error.message,
+        fill: "black",
+        styles: { title: "text-white!", description: "text-white/75!" }
+      });
+      throw new Error(error.message);
+    }
+    if (!data || data.length === 0) {
+      const msg = 'El UPDATE no afectó ninguna fila. Revisa las políticas RLS.';
+      sileo.error({ title: 'Error', description: msg, fill: "black", styles: { title: "text-white!", description: "text-white/75!" } });
+      throw new Error(msg);
+    }
+
+    sileo.success({
+      title: 'Evento cerrado',
+      description: 'La raid se ha movido al historial.',
+      fill: "black",
+      styles: { title: "text-white!", description: "text-white/75!" }
+    });
     await fetchRaids();
     setCloseRaidTarget(null);
   };
@@ -126,6 +174,19 @@ export default function Calendar() {
     }
     const raid = raids.find((r) => r.id === raidId);
     if (!raid) return;
+
+    // Check if user is already signed up
+    const alreadySigned = raid.signups.some(s => s.user_id === user.id);
+    if (alreadySigned) {
+      sileo.success({
+        title: 'Ya estás apuntado',
+        description: 'Puedes modificar tu personaje si es necesario (próximamente).',
+        fill: "black",
+        styles: { title: "text-white!", description: "text-white/75!" }
+      });
+      return;
+    }
+
     setSignupRaid(raid);
   };
 
@@ -139,9 +200,30 @@ export default function Calendar() {
       role: charRoleArg,
     }]);
     if (error) {
-      if (error.code === '23505') throw new Error('¡Ya estás apuntado a esta raid!');
+      if (error.code === '23505') {
+        sileo.error({
+          title: 'Ya apuntado',
+          description: '¡Ya estás apuntado a esta raid!',
+          fill: "black",
+          styles: { title: "text-white!", description: "text-white/75!" }
+        });
+        throw new Error('¡Ya estás apuntado a esta raid!');
+      }
+      sileo.error({
+        title: 'Error al apuntarse',
+        description: error.message,
+        fill: "black",
+        styles: { title: "text-white!", description: "text-white/75!" }
+      });
       throw error;
     }
+
+    sileo.success({
+      title: '¡Te has apuntado!',
+      description: `Registrado como ${name} (${charClassArg})`,
+      fill: "black",
+      styles: { title: "text-white!", description: "text-white/75!" }
+    });
     await fetchRaids();
   };
 
@@ -158,14 +240,41 @@ export default function Calendar() {
       boss: entry.boss,
       icon: entry.icon,
     }]);
-    if (error) alert('Error añadiendo drop: ' + error.message);
-    else await fetchRaids();
+    if (error) {
+      sileo.error({
+        title: 'Error al añadir drop',
+        description: error.message,
+        fill: "black",
+        styles: { title: "text-white!", description: "text-white/75!" }
+      });
+    } else {
+      sileo.success({
+        title: 'Drop registrado',
+        description: `${entry.itemName} para ${entry.winner}`,
+        fill: "black",
+        styles: { title: "text-white!", description: "text-white/75!" }
+      });
+      await fetchRaids();
+    }
   };
 
   const handleRemoveLoot = async (raidId: string, lootId: string) => {
     const { error } = await supabase.from('loot_history').delete().eq('id', lootId);
-    if (error) alert('Error eliminando drop: ' + error.message);
-    else await fetchRaids();
+    if (error) {
+      sileo.error({
+        title: 'Error al eliminar drop',
+        description: error.message,
+        fill: "black",
+        styles: { title: "text-white!", description: "text-white/75!" }
+      });
+    } else {
+      sileo.success({
+        title: 'Drop eliminado',
+        fill: "black",
+        styles: { title: "text-white!", description: "text-white/75!" }
+      });
+      await fetchRaids();
+    }
   };
 
   // ── Groups ─────────────────────────────────────────────────────────────────
@@ -187,7 +296,15 @@ export default function Calendar() {
       .upsert(groupInserts, { onConflict: 'id' })
       .select();
 
-    if (groupError) throw groupError;
+    if (groupError) {
+      sileo.error({
+        title: 'Error al guardar grupos',
+        description: groupError.message,
+        fill: "black",
+        styles: { title: "text-white!", description: "text-white/75!" }
+      });
+      throw groupError;
+    }
 
     // 2. Build a map from group_number → new DB id
     const groupNumToId: Record<number, string> = {};
@@ -196,14 +313,30 @@ export default function Calendar() {
     });
 
     // 3. Update signups
-    await Promise.all(
-      assignments.map((a) =>
-        supabase
-          .from('signups')
-          .update({ raid_group_id: a.group_number ? groupNumToId[a.group_number] ?? null : null })
-          .eq('id', a.signup_id)
-      )
-    );
+    try {
+      await Promise.all(
+        assignments.map((a) =>
+          supabase
+            .from('signups')
+            .update({ raid_group_id: a.group_number ? groupNumToId[a.group_number] ?? null : null })
+            .eq('id', a.signup_id)
+        )
+      );
+
+      sileo.success({
+        title: 'Configuración guardada',
+        description: 'Se han actualizado los grupos de la raid.',
+        fill: "black",
+        styles: { title: "text-white!", description: "text-white/75!" }
+      });
+    } catch (err: any) {
+      sileo.error({
+        title: 'Error al actualizar asignaciones',
+        description: err.message,
+        fill: "black",
+        styles: { title: "text-white!", description: "text-white/75!" }
+      });
+    }
 
     await fetchRaids();
   };

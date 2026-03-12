@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../ui/dialog';
-import { slugClass, type CharRole, RAID_CONFIG, type RaidType } from './constants';
+import { slugClass, type CharRole, RAID_CONFIG, type RaidType, getClassIcon } from './constants';
 import type { UserCharacter, Raid } from '../../types/calendar';
 
 interface SignupModalProps {
@@ -88,7 +88,11 @@ export function SignupModal({
               className={`flex items-center gap-3 p-3 rounded-[4px] border bg-[rgba(255,255,255,0.02)] mb-5 class-${slugClass(character.char_class)}`}
               style={{ borderColor: 'rgba(255,255,255,0.08)' }}
             >
-              <span className={`class-dot class-${slugClass(character.char_class)}`} />
+              <img 
+                src={getClassIcon(character.char_class)} 
+                alt={character.char_class}
+                className="w-8 h-8 rounded-[3px] border border-[rgba(0,0,0,0.3)]"
+              />
               <div className="flex-1">
                 <p className="font-['Changa_One'] text-[0.95rem] text-white">
                   {character.char_name}

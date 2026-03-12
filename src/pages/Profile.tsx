@@ -7,8 +7,10 @@ import {
   CLASSES,
   getAvailableRoles,
   slugClass,
+  getClassIcon,
   type CharRole,
 } from '../components/calendar/constants';
+import { sileo } from 'sileo';
 import type { UserCharacter, Signup, LootEntry, Raid } from '../types/calendar';
 
 const ROLE_ICONS: Record<CharRole, React.ReactNode> = {
@@ -120,10 +122,23 @@ export default function Profile() {
       if (error) throw error;
       setCharacter(data);
       setEditing(false);
+      
+      sileo.success({
+        title: 'Personaje guardado',
+        description: `Tu personaje ${charName} ha sido actualizado.`,
+        fill: "black",
+        styles: { title: "text-white!", description: "text-white/75!" }
+      });
+
       // Reload loot in case name changed
       await loadSignups();
     } catch (err: any) {
-      alert('Error: ' + err.message);
+      sileo.error({
+        title: 'Error al guardar personaje',
+        description: err.message,
+        fill: "black",
+        styles: { title: "text-white!", description: "text-white/75!" }
+      });
     } finally {
       setSaving(false);
     }
@@ -172,7 +187,11 @@ export default function Profile() {
               <div
                 className={`flex items-center gap-3 p-4 rounded-[4px] border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] class-${slugClass(character.char_class)}`}
               >
-                <span className={`class-dot class-${slugClass(character.char_class)}`} style={{ width: 12, height: 12 }} />
+                <img 
+                  src={getClassIcon(character.char_class)} 
+                  alt={character.char_class}
+                  className="w-8 h-8 rounded-[4px] border border-[rgba(0,0,0,0.3)] shadow-md"
+                />
                 <div className="flex-1 min-w-0">
                   <p className="font-['Changa_One'] text-[1.1rem] text-white">{character.char_name}</p>
                   <p className="text-[0.78rem] text-[#8b8b99]">{character.char_class}</p>

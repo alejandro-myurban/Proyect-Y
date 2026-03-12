@@ -43,7 +43,7 @@ function Navbar() {
             <div className="flex justify-between items-center w-full max-w-[1440px] mx-auto px-8">
                 <Link to="/" className="flex items-center no-underline text-[1.5rem] cursor-pointer">
                     <Skull size={32} color="#3db518" />
-                    <span className="ml-2 text-white font-medium tracking-[2px] font-['Changa_One']">
+                    <span className="ml-2 text-white font-medium font-['Changa_One']">
                         Spanish<span className="text-[#86b518]">Mafia</span>
                     </span>
                 </Link>

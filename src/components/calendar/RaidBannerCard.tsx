@@ -16,7 +16,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { slugClass, RAID_CONFIG, CLASS_COLORS, type CharRole } from './constants';
+import { slugClass, RAID_CONFIG, CLASS_COLORS, getClassIcon, type CharRole } from './constants';
 import { RAID_CONFIG as _RC } from './constants';
 import type { Raid, Signup, UserCharacter } from '../../types/calendar';
 import ItemSelector from '../ItemSelector';
@@ -462,6 +462,11 @@ function RosterTab({ signups, raidGroups }: { signups: Signup[]; raidGroups: Rai
               <div
                 className={`flex items-center gap-2 pb-2 border-b border-[rgba(255,255,255,0.05)] text-[0.72rem] font-['Changa_One'] uppercase class-${slugClass(cls)}`}
               >
+                <img 
+                  src={getClassIcon(cls)} 
+                  alt={cls}
+                  className="w-4 h-4 rounded-[2px]"
+                />
                 <span>{cls}</span>
                 <span className="ml-auto bg-[rgba(255,255,255,0.05)] px-1.5 py-0.5 rounded-[3px] text-[#8b8b99]">
                   {members.length}
@@ -518,10 +523,11 @@ function SignupRow({ signup, showRole }: { signup: Signup; showRole?: boolean })
       </span>
       <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
         {showRole && roleIcons[signup.role as CharRole]}
-        <span className="text-[0.62rem] uppercase px-1 py-0.5 rounded-[2px]"
-          style={{ background: `${classColor}18`, color: `${classColor}99` }}>
-          {signup.class.substring(0, 3)}
-        </span>
+        <img 
+          src={getClassIcon(signup.class)} 
+          alt={signup.class}
+          className="w-4 h-4 rounded-[1px] border border-[rgba(0,0,0,0.3)] shadow-sm"
+        />
       </div>
     </div>
   );
@@ -668,8 +674,9 @@ function GruposTab({ raid, onOrganize }: { raid: Raid; onOrganize: () => void })
                 {members.slice(0, 8).map((m, i) => (
                   <span
                     key={i}
-                    className={`text-[0.65rem] px-1.5 py-0.5 rounded-[3px] bg-[rgba(255,255,255,0.04)] class-${slugClass(m.class)}`}
+                    className={`flex items-center gap-1 text-[0.65rem] px-1.5 py-0.5 rounded-[3px] bg-[rgba(255,255,255,0.04)] class-${slugClass(m.class)}`}
                   >
+                    <img src={getClassIcon(m.class)} alt="" className="w-3 h-3 rounded-[1px]" />
                     {m.name}
                   </span>
                 ))}

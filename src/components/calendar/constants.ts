@@ -84,5 +84,26 @@ export const CLASS_COLORS: Record<string, string> = {
   'Druida':                 '#FF7D0A',
 };
 
+const CLASS_SLUGS: Record<string, string> = {
+  'Guerrero':               'warrior',
+  'Paladín':                'paladin',
+  'Cazador':                'hunter',
+  'Pícaro':                 'rogue',
+  'Sacerdote':              'priest',
+  'Chamán':                 'shaman',
+  'Mago':                   'mage',
+  'Brujo':                  'warlock',
+  'Druida':                 'druid',
+  'Caballero de la Muerte': 'deathknight',
+  'Monje':                  'monk',
+  'Cazador de Demonios':    'demonhunter',
+  'Evocador':               'evoker',
+};
+
+export function getClassIcon(className: string) {
+  const slug = CLASS_SLUGS[className] || 'warrior';
+  return `https://wow.zamimg.com/images/wow/icons/medium/classicon_${slug}.jpg`;
+}
+
 // Set your admin emails here
 export const ADMIN_EMAILS: string[] = ['kavaliergrau3@gmail.com'];
