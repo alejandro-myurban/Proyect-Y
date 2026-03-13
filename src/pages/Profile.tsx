@@ -16,6 +16,7 @@ import {
 import { sileo } from 'sileo';
 import { AvatarPickerModal } from '../components/profile/AvatarPickerModal';
 import { CLASS_BANNERS } from '../components/profile/classBanners';
+import { BisPanel } from '../components/profile/BisPanel';
 import type { UserCharacter, Signup, LootEntry, Raid } from '../types/calendar';
 
 const ROLE_ICONS: Record<CharRole, React.ReactNode> = {
@@ -419,6 +420,16 @@ export default function Profile() {
           </div>
         )}
       </div>
+
+      {/* ── BiS List ── */}
+      {character && (
+        <BisPanel
+          charClass={character.char_class}
+          charRole={character.char_role as CharRole}
+          classColor={classColor}
+        />
+      )}
+
       </div>{/* closes max-w container */}
 
       <AnimatePresence>
@@ -433,6 +444,7 @@ export default function Profile() {
     </div>
   );
 }
+
 
 function RaidSignupRow({ signup, past }: { signup: any; past?: boolean }) {
   const raid = signup.raid;

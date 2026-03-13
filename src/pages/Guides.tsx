@@ -277,7 +277,7 @@ function Guides() {
   const config = RAID_CONFIG[activeRaid];
 
   return (
-    <div className="max-w-[1100px] mx-auto px-8 pt-20 pb-16">
+    <div className="max-w-[1100px] mx-auto px-8 pt-40 pb-16">
       {/* Header */}
       <div className="mb-10">
         <h1 className="mb-2">Guías de <span className="text-[#86b518]">Raid</span></h1>

@@ -306,11 +306,6 @@ export function RaidBannerCard({
                 )}
                 {isSignedUp ? (
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1.5 text-[0.8rem] font-['Changa_One'] uppercase"
-                      style={{ color: accentColor }}>
-                      <UserCheck size={14} />
-                      {myGroup ? `Roster ${myGroup.group_number}` : 'Apuntado'}
-                    </div>
                     {!isPast && (
                       <button
                         onClick={() => mySignup && onCancelSignup(mySignup.id)}
@@ -321,6 +316,11 @@ export function RaidBannerCard({
                         <X size={11} /> Cancelar
                       </button>
                     )}
+                    <div className="flex items-center gap-1.5 text-[0.8rem] font-['Changa_One'] uppercase"
+                      style={{ color: accentColor }}>
+                      <UserCheck size={14} />
+                      {myGroup ? `Roster ${myGroup.group_number}` : 'Apuntado'}
+                    </div>
                   </div>
                 ) : !isPast && currentCharacter ? (
                   <button

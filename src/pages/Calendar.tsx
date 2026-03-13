@@ -416,7 +416,7 @@ export default function Calendar() {
   const availableRoles = getAvailableRoles(charClass);
 
   return (
-    <div className="pt-20 max-w-[1440px] mx-auto px-6 pb-16">
+    <div className=" max-w-[1440px] mx-auto px-6 pb-16 pt-40">
       {/* Header */}
       <div className="mb-8 flex items-end justify-between flex-wrap gap-4">
         <div>
