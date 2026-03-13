@@ -239,8 +239,8 @@ export function BisPanel({ charClass, charRole, charName, classColor = '#86b518'
   useEffect(() => {
     if (!realm || !charName) return;
     setGearLoading(true);
-    const base = import.meta.env.DEV ? 'http://localhost:3001' : '';
-    fetch(`${base}/api/character/${realm}/${charName}`)
+    const base = import.meta.env.DEV ? 'http://localhost:3001/api/character' : '/api/character';
+    fetch(`${base}?realm=${realm}&name=${charName}`)
       .then(r => r.json())
       .then(data => { if (data.gear) setGear(data.gear); })
       .catch(() => {})

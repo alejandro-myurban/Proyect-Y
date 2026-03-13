@@ -70,10 +70,11 @@ async function gql(token, query) {
   return res.json();
 }
 
-// GET /api/character/:realm/:name
-app.get('/api/character/:realm/:name', async (req, res) => {
+// GET /api/character?realm=x&name=y
+app.get('/api/character', async (req, res) => {
   try {
-    const { realm, name } = req.params;
+    const { realm, name } = req.query;
+    if (!realm || !name) return res.status(400).json({ error: 'Faltan parámetros realm y name.' });
     const token = await getToken();
 
     // 1. Datos básicos + último report
