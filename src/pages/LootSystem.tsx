@@ -63,7 +63,7 @@ const STEPS = [
 
 function LootSystem() {
     return (
-        <div className="max-w-[1100px] mx-auto px-8 pt-20 pb-20">
+        <div className="max-w-[1100px] mx-auto px-8 pt-40 pb-20">
             {/* Header */}
             <div className="mb-12">
                 <h1 className="mb-3">

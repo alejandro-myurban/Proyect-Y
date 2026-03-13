@@ -46,72 +46,26 @@ const SPEC_LABELS: Record<string, string> = {
   'Druid/Bear': 'Oso', 'Druid/Restoration': 'Restauración', 'Druid/Cat': 'Felino', 'Druid/Balance': 'Equilibrio',
 };
 
-// ── Icon cache (module-level, persists across renders) ────────────────────────
-const iconCache = new Map<number, string>();
-
-function useItemIcons(ids: number[]) {
-  const [icons, setIcons] = useState<Map<number, string>>(new Map(iconCache));
-  const pendingRef = useRef(new Set<number>());
-
-  useEffect(() => {
-    const missing = ids.filter(id => !iconCache.has(id) && !pendingRef.current.has(id));
-    if (missing.length === 0) return;
-
-    missing.forEach(id => pendingRef.current.add(id));
-
-    // Batch: fetch in parallel but throttle to avoid hammering WoWhead
-    const chunks: number[][] = [];
-    for (let i = 0; i < missing.length; i += 8) chunks.push(missing.slice(i, i + 8));
-
-    let cancelled = false;
-    (async () => {
-      for (const chunk of chunks) {
-        if (cancelled) break;
-        await Promise.all(chunk.map(async (id) => {
-          try {
-            const res = await fetch(`https://www.wowhead.com/tbc/tooltip/item/${id}`);
-            const data = await res.json();
-            iconCache.set(id, data.icon || '');
-          } catch {
-            iconCache.set(id, '');
-          }
-          pendingRef.current.delete(id);
-        }));
-        if (!cancelled) setIcons(new Map(iconCache));
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [ids.join(',')]);
-
-  return icons;
-}
-
 // ── Sub-components ────────────────────────────────────────────────────────────
-function ItemIcon({ id, icon, size = 28 }: { id: number; icon?: string; size?: number }) {
-  if (!icon) {
-    return (
-      <div
-        className="flex-shrink-0 rounded-[3px] bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)]"
-        style={{ width: size, height: size }}
-      />
-    );
-  }
-  return (
-    <img
-      src={`https://wow.zamimg.com/images/wow/icons/small/${icon}.jpg`}
-      alt=""
-      className="flex-shrink-0 rounded-[3px] border border-[rgba(0,0,0,0.4)]"
-      style={{ width: size, height: size }}
-      onError={(e: any) => { e.target.style.display = 'none'; }}
-    />
-  );
-}
-
-function BisItemRow({ item, icon, isBis }: { item: BisItem; icon?: string; isBis: boolean }) {
+function BisItemRow({ item, isBis }: { item: BisItem; isBis: boolean }) {
   return (
     <div className="flex items-center gap-2 px-2 py-1.5 rounded-[3px] hover:bg-[rgba(255,255,255,0.03)] transition-colors group">
-      <ItemIcon id={item.id} icon={icon} size={26} />
+      <a
+        href={`https://www.wowhead.com/tbc/item=${item.id}`}
+        target="_blank"
+        rel="noreferrer"
+        data-wh-icon-size="small"
+        data-wh-rename-links="false"
+        className="flex-shrink-0 block w-[26px] h-[26px]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <img
+          src={`https://wow.zamimg.com/images/wow/icons/small/${item.icon}.jpg`}
+          alt=""
+          className="w-[26px] h-[26px] rounded-[3px] border border-[rgba(0,0,0,0.4)]"
+          onError={(e: any) => { e.target.style.display = 'none'; }}
+        />
+      </a>
       <div className="flex-1 min-w-0">
         <p className={`text-[0.78rem] font-medium truncate ${isBis ? 'quality-text-4' : 'text-[#8b8b99]'}`}>
           {item.name}
@@ -125,21 +79,11 @@ function BisItemRow({ item, icon, isBis }: { item: BisItem; icon?: string; isBis
           BiS
         </span>
       )}
-      <a
-        href={`https://www.wowhead.com/tbc/item=${item.id}`}
-        target="_blank"
-        rel="noreferrer"
-        className="flex-shrink-0 text-[0.6rem] text-[#444] hover:text-[#86b518] opacity-0 group-hover:opacity-100 transition-opacity"
-        title="Ver en WoWhead"
-        onClick={(e) => e.stopPropagation()}
-      >
-        ↗
-      </a>
     </div>
   );
 }
 
-function SlotSection({ slot, items, icons }: { slot: string; items: BisItem[]; icons: Map<number, string> }) {
+function SlotSection({ slot, items }: { slot: string; items: BisItem[] }) {
   const [open, setOpen] = useState(false);
   const bisItems = items.filter(i => i.bis === 'BIS' || i.bis.startsWith('BIS'));
   const altItems = items.filter(i => !i.bis.startsWith('BIS'));
@@ -155,26 +99,34 @@ function SlotSection({ slot, items, icons }: { slot: string; items: BisItem[]; i
         </p>
       </div>
 
-      {/* BIS items */}
+      {/* BIS items — siempre visibles */}
       {bisItems.map(item => (
-        <BisItemRow key={item.id} item={item} icon={icons.get(item.id)} isBis={true} />
+        <BisItemRow key={item.id} item={item} isBis={true} />
       ))}
 
-      {/* Alternativas collapsible */}
-      {altItems.length > 0 && (
-        <>
-          <button
-            onClick={() => setOpen(v => !v)}
-            className="flex items-center gap-1 px-2 py-1 text-[0.65rem] text-[#555] hover:text-[#8b8b99] transition-colors w-full"
-          >
-            {open ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-            {altItems.length} alternativa{altItems.length !== 1 ? 's' : ''}
-          </button>
-          {open && altItems.map(item => (
-            <BisItemRow key={item.id} item={item} icon={icons.get(item.id)} isBis={false} />
-          ))}
-        </>
+      {/* Si no hay BIS, mostrar el primer Alt siempre visible */}
+      {bisItems.length === 0 && altItems.length > 0 && (
+        <BisItemRow item={altItems[0]} isBis={false} />
       )}
+
+      {/* Alternativas collapsible */}
+      {(() => {
+        const hiddenAlts = bisItems.length === 0 ? altItems.slice(1) : altItems;
+        return hiddenAlts.length > 0 ? (
+          <>
+            <button
+              onClick={() => setOpen(v => !v)}
+              className="flex items-center gap-1 px-2 py-1 text-[0.65rem] text-[#555] hover:text-[#8b8b99] transition-colors w-full"
+            >
+              {open ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+              {hiddenAlts.length} alternativa{hiddenAlts.length !== 1 ? 's' : ''}
+            </button>
+            {open && hiddenAlts.map(item => (
+              <BisItemRow key={item.id} item={item} isBis={false} />
+            ))}
+          </>
+        ) : null;
+      })()}
     </div>
   );
 }
@@ -190,16 +142,18 @@ export function BisPanel({ charClass, charRole, classColor = '#86b518' }: BisPan
   const specKeys = CLASS_ROLE_SPECS[charClass]?.[charRole] ?? [];
   const [activeSpec, setActiveSpec] = useState(0);
   const [activePhase, setActivePhase] = useState(5);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Notifica al script de Wowhead que hay nuevos links en el DOM
+    (window as any).$WowheadPower?.refreshLinks?.();
+  });
 
   // Find matching spec data
   const specKey = specKeys[activeSpec] ?? '';
   const [cls, spec] = specKey.split('/');
   const specData = BIS_DATA.find(s => s.class === cls && s.spec === spec);
   const phaseData = specData?.phases.find(p => p.phase === activePhase);
-
-  // Collect all item IDs for icon fetching
-  const allIds = phaseData?.items.map(i => i.id) ?? [];
-  const icons = useItemIcons(allIds);
 
   // Group items by slot in correct order
   const bySlot = new Map<string, BisItem[]>();
@@ -273,7 +227,7 @@ export function BisPanel({ charClass, charRole, classColor = '#86b518' }: BisPan
           {SLOT_ORDER.map(slot => {
             const items = bySlot.get(slot) ?? [];
             return items.length > 0 ? (
-              <SlotSection key={slot} slot={slot} items={items} icons={icons} />
+              <SlotSection key={slot} slot={slot} items={items} />
             ) : null;
           })}
         </div>
