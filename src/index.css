@@ -10,6 +10,10 @@
   z-index: 9999 !important;
 }
 
+button {
+  cursor: pointer;
+}
+
 @theme {
  --color-brand-50: #eff6ff;
   --color-brand-100: #dbeafe;
