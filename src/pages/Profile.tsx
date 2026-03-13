@@ -426,6 +426,7 @@ export default function Profile() {
         <BisPanel
           charClass={character.char_class}
           charRole={character.char_role as CharRole}
+          charName={character.char_name}
           classColor={classColor}
         />
       )}
