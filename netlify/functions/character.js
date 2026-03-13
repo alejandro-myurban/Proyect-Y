@@ -1,20 +1,10 @@
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import itemNamesRaw from '../../src/data/itemNames.json' assert { type: 'json' };
 
 const WCL_CLIENT_ID = process.env.WARCRAFT_LOGS_CLIENT_ID;
 const WCL_CLIENT_SECRET = process.env.WARCRAFT_LOGS_CLIENT_SECRET;
 const WCL_BASE = 'https://fresh.warcraftlogs.com';
 
-// Parsear ItemNames.lua una sola vez
-const itemNames = new Map();
-try {
-  const lua = readFileSync(join(process.cwd(), 'src/data/ItemNames.lua'), 'utf8');
-  for (const match of lua.matchAll(/\[(\d+)\]\s*=\s*"([^"]+)"/g)) {
-    itemNames.set(Number(match[1]), match[2]);
-  }
-} catch (e) {
-  console.warn('ItemNames.lua no encontrado:', e.message);
-}
+const itemNames = new Map(Object.entries(itemNamesRaw).map(([k, v]) => [Number(k), v]));
 
 let cachedToken = null;
 let tokenExpiry = 0;

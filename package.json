@@ -8,7 +8,8 @@
     "server": "node server/blizzard.js",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "generate:items": "node scripts/lua-to-json.js"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
