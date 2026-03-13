@@ -5,6 +5,8 @@ import Guides from './pages/Guides';
 import LootSystem from './pages/LootSystem';
 import Calendar from './pages/Calendar';
 import Profile from './pages/Profile';
+import PublicProfile from './pages/PublicProfile';
+import RaidViewer from './pages/RaidViewer';
 import AddVoice from './pages/AddVoice';
 import AdminVoices from './pages/AdminVoices';
 
@@ -35,6 +37,8 @@ function App() {
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/login" element={<Login />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/perfil/:charName" element={<PublicProfile />} />
+          <Route path="/raid/:raidId/visor/:groupId" element={<RaidViewer />} />
           <Route path="/añadir-voz" element={<AddVoice />} />
           <Route path="/admin/voces" element={<AdminVoices />} />
         </Routes>

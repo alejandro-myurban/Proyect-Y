@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import {
   CheckCircle,
   Trash2,
@@ -212,7 +213,7 @@ export function RaidBannerCard({
         />
 
         {/* ── Banner row ── */}
-        <div className="relative flex items-center gap-0 min-h-[120px]">
+        <div className="relative flex items-center gap-0 min-h-[120px] cursor-pointer" onClick={() => setExpanded((v) => !v)}>
           {/* Raid image(s) */}
           <div
             className="flex-shrink-0 w-[180px] h-[180px] self-stretch hidden sm:block overflow-hidden relative"
@@ -283,21 +284,21 @@ export function RaidBannerCard({
                 {isAdmin && !isPast && (
                   <>
                     <button
-                      onClick={() => onOpenGroupOrganizer(raid)}
+                      onClick={(e) => { e.stopPropagation(); onOpenGroupOrganizer(raid); }}
                       className="btn btn-sm flex items-center gap-1.5 text-[0.75rem]"
                       title="Organizar grupos"
                     >
                       <Settings2 size={12} /> Grupos
                     </button>
                     <button
-                      onClick={() => onCloseRaid(raid)}
+                      onClick={(e) => { e.stopPropagation(); onCloseRaid(raid); }}
                       className="btn btn-sm flex items-center gap-1.5 text-[0.75rem]"
                       style={{ borderColor: '#c0392b', color: '#c0392b' }}
                     >
                       <Lock size={12} /> Cerrar
                     </button>
                     <button
-                      onClick={() => onDeleteRaid(raid.id)}
+                      onClick={(e) => { e.stopPropagation(); onDeleteRaid(raid.id); }}
                       className="btn btn-danger btn-sm flex items-center gap-1.5 text-[0.75rem]"
                     >
                       <Trash2 size={23} />
@@ -308,7 +309,7 @@ export function RaidBannerCard({
                   <div className="flex items-center gap-2">
                     {!isPast && (
                       <button
-                        onClick={() => mySignup && onCancelSignup(mySignup.id)}
+                        onClick={(e) => { e.stopPropagation(); mySignup && onCancelSignup(mySignup.id); }}
                         className="btn btn-sm flex items-center gap-1 text-[0.72rem]"
                         style={{ borderColor: '#c0392b', color: '#c0392b' }}
                         title="Desapuntarse"
@@ -324,7 +325,7 @@ export function RaidBannerCard({
                   </div>
                 ) : !isPast && currentCharacter ? (
                   <button
-                    onClick={() => onSignUp(raid.id)}
+                    onClick={(e) => { e.stopPropagation(); onSignUp(raid.id); }}
                     className="btn btn-primary btn-sm flex items-center gap-1.5"
                     style={{ background: accentColor, borderColor: accentColor }}
                   >
@@ -338,6 +339,7 @@ export function RaidBannerCard({
                     href={raid.warcraft_logs_url}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
                     className="btn btn-sm flex items-center gap-1.5 text-[0.75rem]"
                     style={{ borderColor: '#f0a500', color: '#f0a500' }}
                   >
@@ -374,7 +376,6 @@ export function RaidBannerCard({
 
           {/* Expand toggle */}
           <button
-            onClick={() => setExpanded((v) => !v)}
             className="self-stretch px-4 flex items-center text-[#555] hover:text-[#8b8b99] transition-colors border-l border-[#2a2a33]"
           >
             <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
@@ -683,9 +684,14 @@ function SignupRow({ signup, showRole }: { signup: Signup; showRole?: boolean })
       style={{ background: `${classColor}0d`, border: `1px solid ${classColor}28` }}
     >
       <div className="w-[3px] self-stretch flex-shrink-0 mr-2.5" style={{ background: classColor }} />
-      <span className="font-medium text-[0.82rem] flex-1 truncate py-1.5" style={{ color: classColor }}>
+      <Link
+        to={`/perfil/${signup.name}`}
+        className="font-medium text-[0.82rem] flex-1 truncate py-1.5 hover:underline"
+        style={{ color: classColor }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {signup.name}
-      </span>
+      </Link>
       <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
         {showRole && roleIcons[signup.role as CharRole]}
         <img 
@@ -758,9 +764,13 @@ function LootTab({
                 <span className="item-dot w-[6px] h-[6px] rounded-full flex-shrink-0" />
                 <span className="item-name font-medium text-[0.82rem] truncate">{entry.item_name}</span>
               </div>
-              <div className="bg-[rgba(255,255,255,0.05)] px-2.5 py-0.5 rounded-[20px] text-[0.75rem] text-[#e2e2e2] whitespace-nowrap">
+              <Link
+                to={`/perfil/${entry.winner}`}
+                className="bg-[rgba(255,255,255,0.05)] px-2.5 py-0.5 rounded-[20px] text-[0.75rem] text-[#e2e2e2] whitespace-nowrap hover:bg-[rgba(255,255,255,0.1)] transition-colors"
+                onClick={(e) => e.stopPropagation()}
+              >
                 {entry.winner}
-              </div>
+              </Link>
               {isAdmin && (
                 <button
                   onClick={() => onRemoveDrop(entry.id)}
@@ -820,9 +830,13 @@ function GruposTab({ raid, onOrganize }: { raid: Raid; onOrganize: () => void })
           return (
             <div key={group.id} className="border border-[#2a2a33] rounded-[4px] p-3 bg-[rgba(255,255,255,0.02)]">
               <div className="flex items-center justify-between mb-2">
-                <span className="font-['Changa_One'] text-[0.82rem] uppercase text-white">
-                    {group.label ?? `Roster ${group.group_number}`}
-                </span>
+                <Link
+                  to={`/raid/${raid.id}/visor/${group.id}`}
+                  className="font-['Changa_One'] text-[0.82rem] uppercase text-white hover:text-[#86b518] transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {group.label ?? `Roster ${group.group_number}`}
+                </Link>
                 <span className="text-[0.68rem] text-[#8b8b99]">
                   {members.length}/{capacity}
                 </span>
@@ -840,13 +854,15 @@ function GruposTab({ raid, onOrganize }: { raid: Raid; onOrganize: () => void })
               </div>
               <div className="flex flex-wrap gap-1">
                 {members.slice(0, 8).map((m, i) => (
-                  <span
+                  <Link
                     key={i}
-                    className={`flex items-center gap-1 text-[0.65rem] px-1.5 py-0.5 rounded-[3px] bg-[rgba(255,255,255,0.04)] class-${slugClass(m.class)}`}
+                    to={`/perfil/${m.name}`}
+                    className={`flex items-center gap-1 text-[0.65rem] px-1.5 py-0.5 rounded-[3px] bg-[rgba(255,255,255,0.04)] hover:bg-[rgba(255,255,255,0.08)] transition-colors class-${slugClass(m.class)}`}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <img src={getClassIcon(m.class)} alt="" className="w-3 h-3 rounded-[1px]" />
                     {m.name}
-                  </span>
+                  </Link>
                 ))}
                 {members.length > 8 && (
                   <span className="text-[0.65rem] text-[#555]">+{members.length - 8}</span>

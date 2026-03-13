@@ -220,9 +220,10 @@ interface BisPanelProps {
   charRole: CharRole;
   charName: string;
   classColor?: string;
+  onSpecDetected?: (spec: string) => void;
 }
 
-export function BisPanel({ charClass, charRole, charName, classColor = '#86b518' }: BisPanelProps) {
+export function BisPanel({ charClass, charRole, charName, classColor = '#86b518', onSpecDetected }: BisPanelProps) {
   const specKeys = CLASS_ROLE_SPECS[charClass]?.[charRole] ?? [];
   const [activeSpec, setActiveSpec] = useState(0);
   const [activePhase, setActivePhase] = useState(1);
@@ -242,7 +243,15 @@ export function BisPanel({ charClass, charRole, charName, classColor = '#86b518'
     const base = import.meta.env.DEV ? 'http://localhost:3001/api/character' : '/api/character';
     fetch(`${base}?realm=${realm}&name=${charName}`)
       .then(r => r.json())
-      .then(data => { if (data.gear) setGear(data.gear); })
+      .then(data => {
+        if (data.gear) setGear(data.gear);
+        const wclSpec: string | undefined = data.rankings?.allStars?.[0]?.spec;
+        if (wclSpec) {
+          const idx = specKeys.findIndex(k => k.split('/')[1].toLowerCase() === wclSpec.toLowerCase());
+          if (idx !== -1) setActiveSpec(idx);
+          onSpecDetected?.(wclSpec);
+        }
+      })
       .catch(() => {})
       .finally(() => setGearLoading(false));
   }, [realm, charName]);

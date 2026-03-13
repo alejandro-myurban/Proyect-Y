@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Edit2, Check, Shield, Heart, Swords, CalendarDays, Package, LogOut, UserCircle2, Settings2, Camera } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
@@ -47,6 +47,7 @@ export default function Profile() {
   const [charRole, setCharRole] = useState<CharRole>('DPS');
   const [saving, setSaving] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [detectedSpec, setDetectedSpec] = useState<string | null>(null);
 
   const [mySignups, setMySignups] = useState<(Signup & { raid: Pick<Raid, 'id' | 'title' | 'date' | 'raid_type' | 'status' | 'raid_groups'> })[]>([]);
   const [myLoot, setMyLoot] = useState<(LootEntry & { raid_title: string })[]>([]);
@@ -243,7 +244,9 @@ export default function Profile() {
               <h1 className="text-[1.6rem] text-white font-['Changa_One'] uppercase leading-none mb-1">
                 {character?.char_name ?? <span className="text-[#8b8b99] text-[1.2rem]">Sin personaje</span>}
               </h1>
-              <p className="text-[0.8rem] text-[#8b8b99]">{user.email}</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-[0.8rem] text-[#8b8b99]">{user.email}</p>
+              </div>
             </div>
           </div>
           {/* Actions top-right */}
@@ -291,9 +294,19 @@ export default function Profile() {
                   <p className="font-['Changa_One'] text-[1.1rem] text-white">{character.char_name}</p>
                   <p className="text-[0.78rem] text-[#8b8b99]">{character.char_class}</p>
                 </div>
-                <div className="flex items-center gap-1.5 text-[0.8rem] text-[#8b8b99]">
-                  {ROLE_ICONS[character.char_role as CharRole]}
-                  <span>{character.char_role}</span>
+                <div className="flex flex-col items-end gap-1">
+                  <div className="flex items-center gap-1.5 text-[0.8rem] text-[#8b8b99]">
+                    {ROLE_ICONS[character.char_role as CharRole]}
+                    <span>{character.char_role}</span>
+                  </div>
+                  {detectedSpec && (
+                    <span
+                      className="text-[0.65rem] font-['Changa_One'] uppercase px-1.5 py-0.5 rounded-[3px]"
+                      style={{ background: `${classColor}22`, color: classColor, border: `1px solid ${classColor}44` }}
+                    >
+                      {detectedSpec}
+                    </span>
+                  )}
                 </div>
               </div>
               <button onClick={() => setEditing(true)} className="btn w-full flex items-center justify-center gap-2 text-[0.82rem]">
@@ -428,6 +441,7 @@ export default function Profile() {
           charRole={character.char_role as CharRole}
           charName={character.char_name}
           classColor={classColor}
+          onSpecDetected={setDetectedSpec}
         />
       )}
 
@@ -452,9 +466,10 @@ function RaidSignupRow({ signup, past }: { signup: any; past?: boolean }) {
   if (!raid) return null;
 
   const myGroup = raid.raid_groups?.find((g: any) => g.id === signup.raid_group_id);
+  const viewerHref = signup.raid_group_id ? `/raid/${raid.id}/visor/${signup.raid_group_id}` : null;
 
-  return (
-    <div className={`flex items-center gap-4 px-4 py-3 rounded-[4px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.02)] ${past ? 'opacity-60' : ''}`}>
+  const inner = (
+    <div className={`flex items-center gap-4 px-4 py-3 rounded-[4px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.02)] ${past ? 'opacity-60' : ''} ${viewerHref ? 'hover:border-[rgba(255,255,255,0.12)] hover:bg-[rgba(255,255,255,0.04)] transition-colors cursor-pointer' : ''}`}>
       <div className="flex-1 min-w-0">
         <p className="font-['Changa_One'] text-[0.9rem] text-white uppercase tracking-wide">{raid.title}</p>
         <p className="text-[0.72rem] text-[#8b8b99]">{formatDate(raid.date)}</p>
@@ -479,4 +494,6 @@ function RaidSignupRow({ signup, past }: { signup: any; past?: boolean }) {
       </div>
     </div>
   );
+
+  return viewerHref ? <Link to={viewerHref}>{inner}</Link> : inner;
 }
