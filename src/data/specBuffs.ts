@@ -4,168 +4,200 @@
 // category: tipo de utilidad para agrupar visualmente en el visor
 
 export type BuffCategory =
-  | 'buff_ofensivo'   // aumenta daño del grupo
+  | 'buff_ofensivo'   // aumenta daño del grupo/raid
   | 'buff_defensivo'  // aumenta supervivencia
   | 'buff_mana'       // regeneración de maná
   | 'debuff'          // debilita al enemigo
-  | 'aura'            // aura pasiva siempre activa
-  | 'cooldown';       // cooldown importante
+  | 'aura'            // aura pasiva
+  | 'cooldown';       // cooldown importante (Bloodlust, etc.)
+
+export type BuffScope = 'raid' | 'party';
 
 export interface SpecBuff {
   name: string;
   icon: string;
   category: BuffCategory;
+  scope?: BuffScope; // 'raid' = afecta a todo el raid, 'party' = solo al grupo (default)
   description?: string;
 }
+
+// ── Buffs compartidos entre varias specs ─────────────────────────────────────
+const BLOODLUST:           SpecBuff = { name: 'Ansia de sangre / Heroísmo', icon: 'spell_nature_bloodlust',       category: 'cooldown',      scope: 'raid', description: '+30% velocidad de ataque/casteo al raid' };
+const BRILLANTEZ_ARCANA:   SpecBuff = { name: 'Brillantez arcana',           icon: 'spell_holy_magicalsentry',     category: 'buff_mana',     scope: 'raid', description: 'Aumenta Intelecto' };
+const MARCA_SALVAJE:       SpecBuff = { name: 'Marca de lo Salvaje',         icon: 'spell_nature_regeneration',    category: 'buff_ofensivo', scope: 'raid', description: 'Aumenta stats, armadura y resistencias' };
+const LIDER_MANADA:        SpecBuff = { name: 'Líder de la manada',          icon: 'spell_nature_unyeildingstamina', category: 'aura',        description: '+5% crítico melé al grupo' };
+const ESTIMULAR:           SpecBuff = { name: 'Estimular',                   icon: 'spell_nature_lightning',         category: 'buff_mana', scope:"raid",   description: 'Regeneración de maná masiva a un aliado' };
+const ENTEREZA:            SpecBuff = { name: 'Entereza',                    icon: 'spell_holy_wordfortitude',     category: 'buff_defensivo', scope: 'raid', description: 'Aumenta el Aguante del raid' };
+const PROT_SOMBRAS:        SpecBuff = { name: 'Protección contra Sombras',   icon: 'spell_shadow_antishadow',      category: 'buff_defensivo', scope: 'raid', description: 'Aumenta la protección contra las sombras' };
+const MALDICION_ELEMENTOS: SpecBuff = { name: 'Maldición de los Elementos',  icon: 'spell_shadow_chilltouch',      category: 'debuff',        description: '+10% daño de sombras/fuego/arcano' };
+const PIEDRA_ALMA:         SpecBuff = { name: 'Piedra de alma',               icon: 'spell_shadow_soulgem',   scope:"raid",       category: 'cooldown',      description: 'Resurrección en combate' };
+const PIEDRA_SALUD:        SpecBuff = { name: 'Piedra de salud',              icon: 'inv_stone_04',      scope:"raid",            category: 'buff_defensivo', description: 'Consumible de curación instantánea' };
+const ATRONAR_MEJORADO:    SpecBuff = { name: 'Atronar Mejorado',            icon: 'spell_nature_thunderclap',     category: 'debuff',        description: '-20% velocidad de ataque del jefe' };
+const GRITO_BATALLA:       SpecBuff = { name: 'Grito de Batalla',            icon: 'ability_warrior_battleshout',  category: 'buff_ofensivo', description: 'Aumenta el Poder de Ataque del grupo' };
+const RENACER:             SpecBuff = { name: 'Renacer',               icon: 'spell_nature_reincarnation', scope:"raid",    category: 'cooldown', description: 'Resurrección en combate' };
+const MARK_OF_THE_HUNTER:  SpecBuff = { name: 'Marca del Cazador', icon: 'ability_hunter_snipershot',   category: 'debuff',        description: 'Aumenta el Poder de Ataque a distancia contra el objetivo' };
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const SPEC_BUFFS: Record<string, SpecBuff[]> = {
 
   // ── GUERRERO ────────────────────────────────────────────────────────────────
   'Warrior/Arms': [
-    { name: 'Grito de Batalla', icon: 'ability_warrior_battleshout', category: 'buff_ofensivo', description: '+AP al grupo' },
-    { name: 'Grito Desmoralizador', icon: 'ability_warrior_warcry', category: 'debuff', description: '-AP del jefe' },
-    { name: 'Herida Sangrienta', icon: 'ability_warrior_bloodnova', category: 'debuff', description: '-75% curación recibida' },
+    { name: 'Frenesí sangriento', icon: 'ability_warrior_bloodfrenzy', category: 'buff_ofensivo', description: '+4% daño físico recibido por el objetivo' },
+    GRITO_BATALLA,
+    ATRONAR_MEJORADO,
   ],
   'Warrior/Fury': [
-    { name: 'Grito de Batalla', icon: 'ability_warrior_battleshout', category: 'buff_ofensivo', description: '+AP al grupo' },
-    { name: 'Grito Desmoralizador', icon: 'ability_warrior_warcry', category: 'debuff', description: '-AP del jefe' },
-    { name: 'Imprudencia', icon: 'ability_warrior_rampage', category: 'buff_ofensivo', description: '+5% crit melee al grupo (talento)' },
+    GRITO_BATALLA,
+    { name: 'Grito de Comandante', icon: 'ability_warrior_rallyingcry', category: 'buff_defensivo', description: 'Aumenta la vida máxima del grupo' },
   ],
   'Warrior/Protection': [
-    { name: 'Grito Desmoralizador', icon: 'ability_warrior_warcry', category: 'debuff', description: '-AP del jefe' },
-    { name: 'Grito de Batalla', icon: 'ability_warrior_battleshout', category: 'buff_ofensivo', description: '+AP al grupo' },
-    { name: 'Berserker destrozado', icon: 'ability_warrior_sunder', category: 'debuff', description: '-armor acumulable' },
+    ATRONAR_MEJORADO,
+    { name: 'Grito Desmoralizador', icon: 'ability_warrior_warcry',    category: 'debuff', description: 'Reduce el Poder de Ataque del jefe' },
+    { name: 'Hender Armadura',      icon: 'ability_warrior_sunder', category: 'debuff', description: 'Reduce la armadura del objetivo (acumulable)' },
   ],
 
   // ── PALADÍN ─────────────────────────────────────────────────────────────────
   'Paladin/Holy': [
-    { name: 'Bendición de los Reyes', icon: 'spell_magic_greaterblessingofkings', category: 'buff_ofensivo', description: '+10% stats' },
-    { name: 'Bendición de Sabiduría', icon: 'spell_holy_greaterblessingofwisdom', category: 'buff_mana', description: '+mana/5s' },
-    { name: 'Aura de Devoción', icon: 'spell_holy_devotionaura', category: 'buff_defensivo', description: '+armor área' },
-    { name: 'Joya de la Luz', icon: 'spell_holy_divineillumination', category: 'cooldown', description: '-50% coste de maná 15s' },
+    { name: 'Iluminación Divina',     icon: 'spell_holy_divineillumination',           category: 'cooldown',       description: '-50% coste de maná durante 15s' },
+    { name: 'Bendición de Sabiduría', icon: 'spell_holy_greaterblessingofwisdom',      category: 'buff_mana',      description: 'Regeneración de maná constante' },
+    { name: 'Bendición de Reyes',     icon: 'spell_magic_greaterblessingofkings',      category: 'buff_ofensivo', scope:"raid",  description: '+10% estadísticas totales' },
+    { name: 'Bendición de Poderío',   icon: 'spell_holy_fistofjustice',                category: 'buff_ofensivo',  description: 'Aumenta el Poder de Ataque' },
+    { name: 'Aura de Devoción',       icon: 'spell_holy_devotionaura',                 category: 'buff_defensivo', scope: 'party', description: 'Aumenta armadura del grupo' },
+    { name: 'Aura de Concentración',  icon: 'spell_holy_mindsooth',                    category: 'buff_defensivo', description: 'Reduce retroceso de casteo por daño' },
   ],
   'Paladin/Protection': [
-    { name: 'Bendición de los Reyes', icon: 'spell_magic_greaterblessingofkings', category: 'buff_ofensivo', description: '+10% stats' },
-    { name: 'Bendición de Santuario', icon: 'spell_holy_greaterblessingoflight', category: 'buff_defensivo', description: '-daño recibido, devuelve maná al bloquear' },
-    { name: 'Aura de Concentración', icon: 'spell_holy_mindsooth', category: 'buff_defensivo', description: 'Inmunidad a interrupciones de casteo' },
+    { name: 'Bendición de Santuario', icon: 'spell_holy_greaterblessingofsanctuary',   category: 'buff_defensivo', description: 'Reduce daño recibido y devuelve maná al bloquear' },
+    { name: 'Bendición de Sabiduría', icon: 'spell_holy_greaterblessingofwisdom',      category: 'buff_mana',      description: 'Regeneración de maná constante' },
+    { name: 'Bendición de Poderío',   icon: 'spell_holy_fistofjustice',                category: 'buff_ofensivo',  description: 'Aumenta el Poder de Ataque' },
+    { name: 'Aura de Devoción',       icon: 'spell_holy_devotionaura',                 category: 'buff_defensivo', scope: 'party', description: 'Aumenta armadura del grupo' },
   ],
   'Paladin/Retribution': [
-    { name: 'Bendición de los Reyes', icon: 'spell_magic_greaterblessingofkings', category: 'buff_ofensivo', description: '+10% stats' },
-    { name: 'Bendición de Poder', icon: 'spell_holy_greaterblessingofstrength', category: 'buff_ofensivo', description: '+AP' },
-    { name: 'Aura Retributiva', icon: 'spell_holy_auraoflight', category: 'aura', description: '+3% daño al raid (talento)' },
-    { name: 'Juicio de Sabiduría', icon: 'spell_holy_righteousfury', category: 'buff_mana', description: 'Devuelve maná al golpear al jefe' },
+    { name: 'Aura de Santidad Mejorada',      icon: 'spell_holy_mindvision',              category: 'aura',          description: '+10% daño sagrado aumentado' },
+    { name: 'Bendición de Reyes',             icon: 'spell_magic_greaterblessingofkings', category: 'buff_ofensivo', scope:"raid", description: '+10% estadísticas totales' },
+    { name: 'Bendición de Sabiduría',         icon: 'spell_holy_greaterblessingofwisdom', category: 'buff_mana',  scope:"raid",    description: 'Regeneración de maná constante' },
+    { name: 'Bendición de Poderío Mejorada',  icon: 'spell_holy_greaterblessingofkings',  category: 'buff_ofensivo', scope:"raid", description: 'Aumenta el Poder de Ataque (versión mejorada, +20% AP)' },
+    { name: 'Sello del Cruzado',            icon: 'spell_holy_holysmite',          category: 'debuff',        description: 'Aumenta un 3% la probabilidad de crítico de todos los ataques.' },
   ],
 
   // ── CAZADOR ─────────────────────────────────────────────────────────────────
-  'Hunter/Marksmanship': [
-    { name: 'Aura Certero', icon: 'ability_hunter_trueshotaura', category: 'aura', description: '+AP/RAP al grupo' },
-    { name: 'Marca del Cazador', icon: 'ability_hunter_humbleratmark', category: 'debuff', description: '+RAP contra el objetivo' },
-  ],
   'Hunter/Beast Mastery': [
-    { name: 'Inspiración Feroz', icon: 'ability_hunter_pet_bear', category: 'buff_ofensivo', description: '+3% daño al grupo cuando la mascota crit (talento)' },
-    { name: 'Marca del Cazador', icon: 'ability_hunter_humbleratmark', category: 'debuff', description: '+RAP contra el objetivo' },
+    MARK_OF_THE_HUNTER,
+    { name: 'Inspiración Feroz', icon: 'ability_hunter_ferociousinspiration',  category: 'buff_ofensivo', description: '+3% daño al grupo tras crítico de mascota' },
+    { name: 'Marca del Cazador', icon: 'ability_hunter_snipershot',   category: 'debuff',        description: 'Aumenta el Poder de Ataque a distancia contra el objetivo' },
+  ],
+  'Hunter/Marksmanship': [
+    MARK_OF_THE_HUNTER,
+    { name: 'Aura de disparo certero', icon: 'ability_trueshot', category: 'aura',   description: 'Aumenta el Poder de Ataque del grupo' },
+    { name: 'Picadura de escorpido',   icon: 'ability_hunter_criticalshot', category: 'debuff', description: 'Reduce la probabilidad de acertar del jefe' },
   ],
   'Hunter/Survival': [
-    { name: 'Debilidad Expuesta', icon: 'ability_hunter_exposedweakness', category: 'buff_ofensivo', description: '+AP al raid en cada crit ágil (talento)' },
-    { name: 'Marca del Cazador', icon: 'ability_hunter_humbleratmark', category: 'debuff', description: '+RAP contra el objetivo' },
+    MARK_OF_THE_HUNTER,
+    { name: 'Debilidad expuesta', icon: 'ability_rogue_findweakness', category: 'debuff', description: 'Aumenta todo el daño de poder de ataque al objetivo.' },
+    { name: 'Picadura de escorpido',   icon: 'ability_hunter_criticalshot', category: 'debuff', description: 'Reduce la probabilidad de acertar del jefe' },
   ],
 
   // ── PÍCARO ──────────────────────────────────────────────────────────────────
   'Rogue/Dps': [
-    { name: 'Exponer Armadura', icon: 'ability_warrior_sunder', category: 'debuff', description: '-armor (alternativa a Berserker Destrozado)' },
-    { name: 'Veneno Mortal', icon: 'ability_rogue_dualweild', category: 'debuff', description: 'Ralentiza ataques del jefe' },
+    { name: 'Exponer armadura mejorado', icon: 'ability_warrior_riposte', category: 'debuff', description: 'Reduce armadura (más potente que Hender Armadura)' },
   ],
 
   // ── SACERDOTE ────────────────────────────────────────────────────────────────
   'Priest/Holy': [
-    { name: 'Fortaleza de Poder', icon: 'spell_holy_wordfortitude', category: 'buff_defensivo', description: '+Stamina al raid' },
-    { name: 'Espíritu Divino', icon: 'spell_holy_divinespirit', category: 'buff_mana', description: '+Spirit al raid' },
-    { name: 'Oración de Espíritu', icon: 'spell_holy_prayerofspirit', category: 'buff_mana', description: '+Spirit en área' },
-    { name: 'Inspíración', icon: 'spell_holy_heal02', category: 'buff_defensivo', description: '-daño recibido al objetivo curado crit' },
+    { name: 'Espíritu divino', icon: 'spell_holy_divinespirit', category: 'buff_defensivo', scope: 'raid', description: 'Aumenta el Espíritu (regeneración)' },
+    ENTEREZA,
+    PROT_SOMBRAS,
   ],
   'Priest/Shadow': [
-    { name: 'Toque Vampírico', icon: 'spell_holy_stoicism', category: 'buff_mana', description: 'Regenera maná al raid al hacer daño' },
-    { name: 'Fortaleza de Poder', icon: 'spell_holy_wordfortitude', category: 'buff_defensivo', description: '+Stamina al raid' },
-    { name: 'Tejido de Sombras', icon: 'spell_shadow_requiem', category: 'debuff', description: '-resistencia a sombras del objetivo' },
-    { name: 'Miseria', icon: 'spell_shadow_misery', category: 'debuff', description: '+impacto de hechizos contra el objetivo' },
+    { name: 'Toque vampírico',   icon: 'spell_holy_stoicism',       category: 'buff_mana', description: 'Regenera maná al grupo basado en el daño de sombras' },
+    { name: 'Miseria',           icon: 'spell_shadow_misery',       category: 'debuff',    description: '+5% daño con hechizos al objetivo' },
+    { name: 'Tejido de Sombras', icon: 'spell_shadow_blackplague',  category: 'debuff',    description: '+10% daño de sombras al objetivo' },
+    { name: 'Abrazo vampírico',  icon: 'spell_shadow_unsummonbuilding', category: 'buff_ofensivo', scope: 'party', description: 'Sana al grupo mientras hace daño' },
+    ENTEREZA,
+    PROT_SOMBRAS,
   ],
 
   // ── CHAMÁN ──────────────────────────────────────────────────────────────────
   'Shaman/Elemental': [
-    { name: 'Totem de Cólera', icon: 'spell_fire_totemofwrath', category: 'buff_ofensivo', description: '+3% impacto/crit a hechizos al grupo' },
-    { name: 'Totem Lluvia de Llamas', icon: 'spell_fire_selfdestruct', category: 'buff_ofensivo', description: 'Daño AoE pasivo' },
-    { name: 'Totem Aire de la Ira', icon: 'spell_nature_slowingtotem', category: 'buff_ofensivo', description: '+5% haste a hechizos al grupo' },
-    { name: 'Totem de la Fuente', icon: 'spell_nature_manaregentotem', category: 'buff_mana', description: '+maná al grupo' },
+    BLOODLUST,
+    { name: 'Tótem de Cólera',         icon: 'spell_fire_totemofwrath',    category: 'buff_ofensivo', scope: 'party', description: '+3% golpe y crítico con hechizos al grupo' },
   ],
   'Shaman/Enhancement': [
-    { name: 'Totem Furiaventos', icon: 'spell_nature_windfury', category: 'buff_ofensivo', description: '+melee haste al grupo' },
-    { name: 'Totem de Fuerza de la Tierra', icon: 'spell_nature_earthbindtotem', category: 'buff_ofensivo', description: '+Strength al grupo' },
-    { name: 'Totem de Gracia del Aire', icon: 'spell_nature_invisibilitytotem', category: 'buff_ofensivo', description: '+Agilidad al grupo' },
-    { name: 'Totem de la Fuente', icon: 'spell_nature_manaregentotem', category: 'buff_mana', description: '+maná al grupo' },
+    BLOODLUST,
+    { name: 'Furia desatada',               icon: 'spell_nature_unleashedrage', scope:"party",  category: 'buff_ofensivo', description: '+10% Poder de Ataque melé al grupo' },
   ],
   'Shaman/Restoration': [
-    { name: 'Totem Fuente de Maná', icon: 'spell_nature_manaregentotem', category: 'buff_mana', description: '+maná/5s al grupo' },
-    { name: 'Totem de Curación', icon: 'spell_nature_healingwavetotem', category: 'buff_defensivo', description: 'Regeneración de vida pasiva al grupo' },
-    { name: 'Totem de Gracia del Aire', icon: 'spell_nature_invisibilitytotem', category: 'buff_ofensivo', description: '+Agilidad al grupo' },
-    { name: 'Mareas de la Naturaleza', icon: 'spell_shaman_tidalwaves', category: 'cooldown', description: 'Potencia heals del grupo' },
+    BLOODLUST,
+    { name: 'Tótem Marea de maná', icon: 'spell_frost_summonwaterelemental', category: 'buff_mana', description: 'Restaura maná masivo al grupo' },
   ],
 
   // ── MAGO ────────────────────────────────────────────────────────────────────
   'Mage/Arcane': [
-    { name: 'Brillantez Arcana', icon: 'spell_holy_magicalsentry', category: 'buff_mana', description: '+Intelecto al raid' },
-    { name: 'Magia Focalizada', icon: 'spell_arcane_focusedpower', category: 'buff_ofensivo', description: '+3% crit a un aliado (talento)' },
-    { name: 'Magia de Arcano', icon: 'spell_arcane_arcaneresilience', category: 'debuff', description: '+resist hechizos del objetivo (debuff)' },
+    BRILLANTEZ_ARCANA,
+    { name: 'Poder arcano', icon: 'spell_nature_lightning', category: 'cooldown', description: 'Burst masivo de daño' },
   ],
   'Mage/Fire': [
-    { name: 'Brillantez Arcana', icon: 'spell_holy_magicalsentry', category: 'buff_mana', description: '+Intelecto al raid' },
-    { name: 'Escorchado Mejorado', icon: 'spell_fire_soulburn', category: 'debuff', description: '-resistencia a fuego del objetivo' },
+    BRILLANTEZ_ARCANA,
+    { name: 'Agostar mejorado', icon: 'spell_fire_soulburn', category: 'debuff', description: '+15% daño de fuego al objetivo' },
   ],
   'Mage/Frost': [
-    { name: 'Brillantez Arcana', icon: 'spell_holy_magicalsentry', category: 'buff_mana', description: '+Intelecto al raid' },
-    { name: 'Escalofrío Invernal', icon: 'spell_frost_chillingblast', category: 'debuff', description: '-resistencia a escarcha del objetivo' },
+    BRILLANTEZ_ARCANA,
+    { name: 'Escalofrío invernal', icon: 'spell_frost_chillingblast', category: 'debuff',   description: '+10% crítico de escarcha al objetivo' },
   ],
 
   // ── BRUJO ────────────────────────────────────────────────────────────────────
   'Warlock/Affliction': [
-    { name: 'Maldición de los Elementos', icon: 'spell_shadow_chilltouch', category: 'debuff', description: '-resistencia a magia del objetivo' },
-    { name: 'Maledicción', icon: 'spell_shadow_curseofachimonde', category: 'debuff', description: '+3% impacto de hechizos (talento)' },
-    { name: 'Toque Vampírico del Brujo', icon: 'spell_shadow_lifedrain02', category: 'buff_mana', description: 'Drenar vida/maná' },
-  ],
-  'Warlock/Demonology': [
-    { name: 'Maldición de los Elementos', icon: 'spell_shadow_chilltouch', category: 'debuff', description: '-resistencia a magia del objetivo' },
-    { name: 'Alma Felina Mejorada', icon: 'spell_shadow_summonfelhunter', category: 'buff_mana', description: 'Regenera maná del grupo' },
+    { name: 'Pacto de sangre', icon: 'spell_shadow_bloodboil',        category: 'buff_defensivo', description: 'Aumenta la salud del grupo (Diablillo)' },
+    MALDICION_ELEMENTOS,
+    PIEDRA_ALMA,
+    PIEDRA_SALUD,
   ],
   'Warlock/Destruction': [
-    { name: 'Maldición de los Elementos', icon: 'spell_shadow_chilltouch', category: 'debuff', description: '-resistencia a magia del objetivo' },
-    { name: 'Maldición de la Lengua de Sombras', icon: 'spell_shadow_shadowbolt', category: 'debuff', description: '+impacto de relámpago de sombras' },
+    MALDICION_ELEMENTOS,
+    PIEDRA_ALMA,
+    PIEDRA_SALUD,
+  ],
+  'Warlock/Demonology': [
+    { name: 'Aura vil', icon: 'spell_shadow_summonfelhunter', category: 'buff_mana', description: 'Regeneración de maná/vida (Manáfago)' },
+    MALDICION_ELEMENTOS,
+    PIEDRA_ALMA,
+    PIEDRA_SALUD,
   ],
 
   // ── DRUIDA ───────────────────────────────────────────────────────────────────
   'Druid/Balance': [
-    { name: 'Aura Ósea de Luna', icon: 'spell_nature_starfall', category: 'aura', description: '+5% crit a hechizos al grupo' },
-    { name: 'Fuego de las Hadas', icon: 'spell_nature_faeriefire', category: 'debuff', description: '-armor del objetivo, no puede volverse invisible' },
-    { name: 'Tierra y Luna', icon: 'spell_arcane_starfire', category: 'debuff', description: '-resistencia a magia del objetivo (talento)' },
-  ],
-  'Druid/Restoration': [
-    { name: 'Maná Salvaje', icon: 'spell_nature_lightning', category: 'cooldown', description: 'Restaura todo el maná de un aliado (Innervate)' },
-    { name: 'Rugido del Árbol', icon: 'ability_druid_treeoflife', category: 'buff_defensivo', description: '+heal a aliados cercanos en Forma de Árbol' },
-    { name: 'Tranquilidad', icon: 'spell_nature_tranquility', category: 'cooldown', description: 'AoE heal masivo de emergencia' },
-  ],
-  'Druid/Cat': [
-    { name: 'Líder de la Manada', icon: 'spell_nature_unyeildingstamina', category: 'aura', description: '+5% crit melee al grupo' },
-    { name: 'Desgarrar', icon: 'ability_druid_mangle2', category: 'debuff', description: '+30% daño de sangrado en el objetivo' },
-    { name: 'Fuego de las Hadas', icon: 'spell_nature_faeriefire', category: 'debuff', description: '-armor del objetivo' },
+    MARCA_SALVAJE,
+    ESTIMULAR,
+    RENACER,
+    { name: 'Aura de lechúcico lunar', icon: 'spell_nature_moonglow',  category: 'aura',   description: '+5% crítico con hechizos al grupo' },
+    { name: 'Fuego fatuo mejorado',    icon: 'spell_nature_faeriefire', category: 'debuff', description: '+3% probabilidad de golpe físico/hechizos' },
   ],
   'Druid/Bear': [
-    { name: 'Líder de la Manada', icon: 'spell_nature_unyeildingstamina', category: 'aura', description: '+5% crit melee al grupo' },
-    { name: 'Rugido Desmoralizador', icon: 'ability_druid_demoralizingroar', category: 'debuff', description: '-AP del jefe (alternativa a guerrero)' },
-    { name: 'Fuego de las Hadas', icon: 'spell_nature_faeriefire', category: 'debuff', description: '-armor del objetivo' },
+    MARCA_SALVAJE,
+    ESTIMULAR,
+    LIDER_MANADA,
+    RENACER,
+    { name: 'Rugido desmoralizador', icon: 'ability_druid_demoralizingroar', category: 'debuff',   description: 'Reduce el AP del jefe' },
+    
+    { name: 'Destrozar', icon: 'ability_druid_mangle2', category: 'debuff', description: '+30% daño por sangrados y Triturar' },
+  ],
+  'Druid/Cat': [
+    MARCA_SALVAJE,
+    ESTIMULAR,
+    LIDER_MANADA,
+    RENACER,
+    { name: 'Destrozar', icon: 'ability_druid_mangle2', category: 'debuff', description: '+30% daño por sangrados y Triturar' },
+  ],
+  'Druid/Restoration': [
+    MARCA_SALVAJE,
+    ESTIMULAR,
+    RENACER,
+    { name: 'Árbol de vida', icon: 'ability_druid_treeoflife', category: 'aura', description: 'Aumenta la sanación recibida del grupo' },
   ],
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Dado un class name (español) y un rol, devuelve todos los buffs posibles agrupados por spec */
 export function getBuffsForClassRole(
   charClass: string,
   charRole: string
@@ -186,12 +218,12 @@ export function getBuffsForClassRole(
     'Warrior/Arms': 'Armas', 'Warrior/Fury': 'Furia', 'Warrior/Protection': 'Protección',
     'Paladin/Holy': 'Sagrado', 'Paladin/Protection': 'Protección', 'Paladin/Retribution': 'Reprensión',
     'Hunter/Marksmanship': 'Puntería', 'Hunter/Beast Mastery': 'Dom. Bestias', 'Hunter/Survival': 'Supervivencia',
-    'Rogue/Dps': 'DPS',
-    'Priest/Holy': 'Sagrado', 'Priest/Shadow': 'Sombras',
+    'Rogue/Dps': 'Asesinato/Combate',
+    'Priest/Holy': 'Sagrado/Disciplina', 'Priest/Shadow': 'Sombras',
     'Shaman/Restoration': 'Restauración', 'Shaman/Elemental': 'Elemental', 'Shaman/Enhancement': 'Mejora',
     'Mage/Fire': 'Fuego', 'Mage/Arcane': 'Arcano', 'Mage/Frost': 'Escarcha',
     'Warlock/Destruction': 'Destrucción', 'Warlock/Affliction': 'Aflicción', 'Warlock/Demonology': 'Demonología',
-    'Druid/Bear': 'Oso', 'Druid/Restoration': 'Restauración', 'Druid/Cat': 'Felino', 'Druid/Balance': 'Equilibrio',
+    'Druid/Bear': 'Feral (Oso)', 'Druid/Restoration': 'Restauración', 'Druid/Cat': 'Feral (Gato)', 'Druid/Balance': 'Equilibrio',
   };
 
   const specKeys = CLASS_ROLE_MAP[charClass]?.[charRole] ?? [];
@@ -200,21 +232,48 @@ export function getBuffsForClassRole(
     .filter(s => s.buffs.length > 0);
 }
 
-/** Colores por categoría de buff */
+/** Todas las specs de una clase sin filtrar por rol — para el selector manual de spec */
+export function getAllSpecsForClass(charClass: string): { specKey: string; specLabel: string }[] {
+  const CLASS_ALL_SPECS: Record<string, string[]> = {
+    'Guerrero':  ['Warrior/Arms', 'Warrior/Fury', 'Warrior/Protection'],
+    'Paladín':   ['Paladin/Holy', 'Paladin/Protection', 'Paladin/Retribution'],
+    'Cazador':   ['Hunter/Marksmanship', 'Hunter/Beast Mastery', 'Hunter/Survival'],
+    'Pícaro':    ['Rogue/Dps'],
+    'Sacerdote': ['Priest/Holy', 'Priest/Shadow'],
+    'Chamán':    ['Shaman/Restoration', 'Shaman/Elemental', 'Shaman/Enhancement'],
+    'Mago':      ['Mage/Fire', 'Mage/Arcane', 'Mage/Frost'],
+    'Brujo':     ['Warlock/Destruction', 'Warlock/Affliction', 'Warlock/Demonology'],
+    'Druida':    ['Druid/Bear', 'Druid/Restoration', 'Druid/Cat', 'Druid/Balance'],
+  };
+  const SPEC_LABELS: Record<string, string> = {
+    'Warrior/Arms': 'Armas', 'Warrior/Fury': 'Furia', 'Warrior/Protection': 'Protección',
+    'Paladin/Holy': 'Sagrado', 'Paladin/Protection': 'Protección Paladín', 'Paladin/Retribution': 'Reprensión',
+    'Hunter/Marksmanship': 'Puntería', 'Hunter/Beast Mastery': 'Dom. Bestias', 'Hunter/Survival': 'Supervivencia',
+    'Rogue/Dps': 'Asesinato/Combate',
+    'Priest/Holy': 'Sagrado/Disciplina', 'Priest/Shadow': 'Sombras',
+    'Shaman/Restoration': 'Restauración', 'Shaman/Elemental': 'Elemental', 'Shaman/Enhancement': 'Mejora',
+    'Mage/Fire': 'Fuego', 'Mage/Arcane': 'Arcano', 'Mage/Frost': 'Escarcha',
+    'Warlock/Destruction': 'Destrucción', 'Warlock/Affliction': 'Aflicción', 'Warlock/Demonology': 'Demonología',
+    'Druid/Bear': 'Feral (Oso)', 'Druid/Restoration': 'Restauración Druida', 'Druid/Cat': 'Feral (Gato)', 'Druid/Balance': 'Equilibrio',
+  };
+  return (CLASS_ALL_SPECS[charClass] ?? []).map(k => ({ specKey: k, specLabel: SPEC_LABELS[k] ?? k.split('/')[1] }));
+}
+
+/** Colores por categoría (usando paleta WoW clásica) */
 export const BUFF_CATEGORY_COLORS: Record<BuffCategory, string> = {
-  buff_ofensivo: '#d9534f',
-  buff_defensivo: '#5bc0de',
-  buff_mana:     '#5cb85c',
-  debuff:        '#f0a500',
-  aura:          '#a335ee',
-  cooldown:      '#ff8000',
+  buff_ofensivo: '#FF4500',
+  buff_defensivo: '#1E90FF',
+  buff_mana:     '#32CD32',
+  debuff:        '#BA55D3',
+  aura:          '#FFD700',
+  cooldown:      '#FF8C00',
 };
 
 export const BUFF_CATEGORY_LABELS: Record<BuffCategory, string> = {
-  buff_ofensivo: 'Ofensivo',
-  buff_defensivo: 'Defensivo',
-  buff_mana:     'Maná',
-  debuff:        'Debuff',
-  aura:          'Aura',
-  cooldown:      'Cooldown',
+  buff_ofensivo: 'Daño',
+  buff_defensivo: 'Supervivencia',
+  buff_mana:     'Recursos/Maná',
+  debuff:        'Debuff Enemigo',
+  aura:          'Aura Pasiva',
+  cooldown:      'Habilidad Clave',
 };

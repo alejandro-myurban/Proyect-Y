@@ -9,6 +9,7 @@ import PublicProfile from './pages/PublicProfile';
 import RaidViewer from './pages/RaidViewer';
 import AddVoice from './pages/AddVoice';
 import AdminVoices from './pages/AdminVoices';
+import AdminUsers from './pages/AdminUsers';
 
 import { Toaster } from "sileo";
 import { AuthProvider } from './context/AuthContext';
@@ -41,6 +42,7 @@ function App() {
           <Route path="/raid/:raidId/visor/:groupId" element={<RaidViewer />} />
           <Route path="/añadir-voz" element={<AddVoice />} />
           <Route path="/admin/voces" element={<AdminVoices />} />
+          <Route path="/admin/usuarios" element={<AdminUsers />} />
         </Routes>
       </div>
       <Footer />

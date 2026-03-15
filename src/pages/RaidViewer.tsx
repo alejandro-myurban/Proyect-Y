@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { DndContext, DragEndEvent, useDroppable, useDraggable } from '@dnd-kit/core';
+import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, useDroppable, useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { ArrowLeft, Shield, Heart, Swords, Users } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import {
-  ADMIN_EMAILS,
   CLASS_COLORS,
   getClassIcon,
   RAID_CONFIG,
@@ -14,7 +13,7 @@ import {
   type RaidType,
 } from '../components/calendar/constants';
 import type { Signup, RaidGroup } from '../types/calendar';
-import { getBuffsForClassRole, BUFF_CATEGORY_COLORS } from '../data/specBuffs';
+import { getBuffsForClassRole, SPEC_BUFFS, BUFF_CATEGORY_COLORS, type SpecBuff } from '../data/specBuffs';
 
 const ROLE_COLORS: Record<CharRole, string> = {
   Tanque: '#5bc0de',
@@ -70,9 +69,10 @@ function UnitFrame({ signup, isDraggable }: { signup: Signup; isDraggable: boole
         </span>
         <Link
           to={`/perfil/${signup.name}`}
-          className="font-['Changa_One'] text-[0.82rem] leading-none truncate flex-1 hover:underline"
+          className="font-['Changa_One'] text-base leading-none truncate flex-1 hover:underline"
           style={{ color: '#e8e8e8' }}
           onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
         >
           {signup.name}
         </Link>
@@ -86,55 +86,116 @@ function UnitFrame({ signup, isDraggable }: { signup: Signup; isDraggable: boole
 
       {/* Health + power bars */}
       <div className="px-1.5 pt-[4px] pb-[3px] flex flex-col gap-[2px]">
-        <div className="h-[7px] overflow-hidden" style={{ background: 'rgba(0,0,0,0.6)', outline: '1px solid rgba(0,0,0,0.8)' }}>
+        <div className="h-[30px] overflow-hidden" style={{ background: 'rgba(0,0,0,0.6)', outline: '1px solid rgba(0,0,0,0.8)' }}>
           <div className="h-full w-full" style={{ background: `linear-gradient(90deg, ${classColor}ee 0%, ${classColor}88 100%)` }} />
-        </div>
-        <div className="h-[4px] overflow-hidden" style={{ background: 'rgba(0,0,0,0.6)', outline: '1px solid rgba(0,0,0,0.8)' }}>
-          <div
-            className="h-full w-[88%]"
-            style={{
-              background:
-                signup.role === 'Sanador' ? '#1a6fff'
-                : signup.role === 'Tanque' ? '#e8a020'
-                : '#aa2222',
-            }}
-          />
         </div>
       </div>
 
-      {/* Buff icons */}
-      {(() => {
-        const specGroups = getBuffsForClassRole(signup.class, signup.role);
-        const allBuffs = specGroups.flatMap(g => g.buffs);
-        if (allBuffs.length === 0) return null;
-        return (
-          <div className="px-1.5 pb-[4px] flex flex-wrap gap-[2px]">
-            {allBuffs.map((buff, i) => (
-              <div key={i} className="relative group/buff">
-                <img
-                  src={`https://wow.zamimg.com/images/wow/icons/small/${buff.icon}.jpg`}
-                  alt={buff.name}
-                  className="w-[14px] h-[14px]"
-                  style={{ outline: `1px solid ${BUFF_CATEGORY_COLORS[buff.category]}88` }}
-                  onError={(e: any) => { e.target.style.display = 'none'; }}
-                />
-                {/* Tooltip */}
-                <div className="absolute bottom-full left-0 mb-1 z-50 hidden group-hover/buff:block pointer-events-none">
-                  <div className="bg-[#0d0d10] border border-[rgba(255,255,255,0.15)] rounded-[3px] px-2 py-1 whitespace-nowrap shadow-xl">
-                    <p className="text-[0.7rem] text-white font-medium">{buff.name}</p>
-                    {buff.description && (
-                      <p className="text-[0.62rem] text-[#8b8b99] mt-0.5">{buff.description}</p>
-                    )}
-                    <p className="text-[0.58rem] mt-0.5" style={{ color: BUFF_CATEGORY_COLORS[buff.category] }}>
-                      {specGroups.find(g => g.buffs.includes(buff))?.specLabel}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
+    </div>
+  );
+}
+
+// Devuelve los buffs de un signup: usa la spec real si la conocemos, si no los buffs garantizados
+function getBuffsForSignup(signup: Signup, specMap: Record<string, string>): SpecBuff[] {
+  const knownSpec = signup.user_id ? specMap[signup.user_id] : undefined;
+  console.log(`[spec] ${signup.name} | user_id=${signup.user_id} | spec=${knownSpec ?? 'none'}`);
+  if (knownSpec && SPEC_BUFFS[knownSpec]) {
+    return SPEC_BUFFS[knownSpec];
+  }
+  // Sin spec conocida: solo buffs presentes en TODAS las specs del rol
+  const specGroups = getBuffsForClassRole(signup.class, signup.role);
+  if (specGroups.length === 1) return specGroups[0].buffs;
+  const allNames = specGroups.map(g => new Set(g.buffs.map(b => b.name)));
+  return specGroups[0].buffs.filter(b => allNames.every(s => s.has(b.name)));
+}
+
+// ── Raid buffs/debuffs full overview (below grid) ────────────────────────────
+function RaidBuffsPanel({ members, specMap }: { members: Signup[]; specMap: Record<string, string> }) {
+  // All unique buffs and debuffs from every spec in the game
+  const allBuffs = new Map<string, SpecBuff>();
+  const allDebuffs = new Map<string, SpecBuff>();
+  Object.values(SPEC_BUFFS).forEach((buffs) => {
+    buffs.forEach((b) => {
+      if (b.category === 'debuff') allDebuffs.set(b.name, b);
+      else allBuffs.set(b.name, b);
+    });
+  });
+
+  // What the current roster actually covers
+  const covered = new Set<string>();
+  const providers = new Map<string, string[]>();
+  members.forEach((s) => {
+    getBuffsForSignup(s, specMap).forEach((b) => {
+      covered.add(b.name);
+      if (!providers.has(b.name)) providers.set(b.name, []);
+      if (!providers.get(b.name)!.includes(s.name)) providers.get(b.name)!.push(s.name);
+    });
+  });
+
+  const sortedBuffs = Array.from(allBuffs.values()).sort((a, b) => a.name.localeCompare(b.name, 'es'));
+  const sortedDebuffs = Array.from(allDebuffs.values()).sort((a, b) => a.name.localeCompare(b.name, 'es'));
+
+  const renderEntry = (buff: SpecBuff) => {
+    const present = covered.has(buff.name);
+    const prov = providers.get(buff.name) ?? [];
+    return (
+      <div key={buff.name} className="relative group/bentry flex items-center gap-2 py-[3px]">
+        <span
+          className="w-2 h-2 rounded-full shrink-0"
+          style={{ background: present ? '#22c55e' : 'rgba(255,255,255,0.15)' }}
+        />
+        <img
+          src={`https://wow.zamimg.com/images/wow/icons/small/${buff.icon}.jpg`}
+          alt=""
+          className="w-[18px] h-[18px] rounded-[2px] shrink-0"
+          style={{ opacity: present ? 1 : 0.25 }}
+          onError={(e: any) => { e.target.style.display = 'none'; }}
+        />
+        <span
+          className="text-[0.78rem] leading-tight"
+          style={{ color: present ? '#e8e8e8' : 'rgba(255,255,255,0.3)', fontWeight: present ? 600 : 400 }}
+        >
+          {buff.name}
+        </span>
+        {present && prov.length > 0 && (
+          <div className="absolute left-0 bottom-full mb-1.5 z-50 hidden group-hover/bentry:block pointer-events-none">
+            <div className="bg-[#0d0d10] border border-[rgba(255,255,255,0.15)] rounded-[3px] px-2 py-1.5 shadow-xl min-w-[130px]">
+              <p className="text-[0.7rem] text-white font-semibold mb-0.5">{buff.name}</p>
+              {buff.description && <p className="text-[0.62rem] text-[#8b8b99] mb-1">{buff.description}</p>}
+              {prov.map((p) => <p key={p} className="text-[0.6rem] text-[#c8a84b]">· {p}</p>)}
+            </div>
           </div>
-        );
-      })()}
+        )}
+      </div>
+    );
+  };
+
+  const half = (arr: SpecBuff[]) => {
+    const mid = Math.ceil(arr.length / 2);
+    return [arr.slice(0, mid), arr.slice(mid)];
+  };
+
+  const [buffsL, buffsR] = half(sortedBuffs);
+  const [debuffsL, debuffsR] = half(sortedDebuffs);
+
+  return (
+    <div className="mt-8 grid grid-cols-2 gap-4">
+      {/* Buffs panel */}
+      <div className="bg-[#0f0f13] border border-white/10 rounded-xl p-5">
+        <p className="font-['Changa_One'] text-[0.75rem] uppercase tracking-widest text-[#86b518] mb-4">Buffs</p>
+        <div className="grid grid-cols-2 gap-x-6">
+          <div>{buffsL.map(renderEntry)}</div>
+          <div>{buffsR.map(renderEntry)}</div>
+        </div>
+      </div>
+      {/* Debuffs panel */}
+      <div className="bg-[#0f0f13] border border-white/10 rounded-xl p-5">
+        <p className="font-['Changa_One'] text-[0.75rem] uppercase tracking-widest text-[#ba55d3] mb-4">Debuffs</p>
+        <div className="grid grid-cols-2 gap-x-6">
+          <div>{debuffsL.map(renderEntry)}</div>
+          <div>{debuffsR.map(renderEntry)}</div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -145,12 +206,15 @@ function SubGroupColumn({
   members,
   isAdmin,
   isOver,
+  specMap,
 }: {
   colIndex: number;
   members: Signup[];
   isAdmin: boolean;
   isOver: boolean;
+  specMap: Record<string, string>;
 }) {
+  const isFull = members.length >= 5;
   const { setNodeRef } = useDroppable({ id: `col-${colIndex}` });
 
   return (
@@ -159,7 +223,9 @@ function SubGroupColumn({
       className="flex flex-col overflow-hidden transition-colors duration-150"
       style={{
         background: isOver ? 'rgba(134,181,24,0.06)' : 'rgba(20,20,26,0.9)',
-        border: isOver ? '2px solid rgba(134,181,24,0.5)' : '2px solid rgba(255,255,255,0.1)',
+        border: isFull
+          ? '2px solid rgba(217,83,79,0.4)'
+          : isOver ? '2px solid rgba(134,181,24,0.5)' : '2px solid rgba(255,255,255,0.1)',
         outline: isOver ? 'none' : '1px solid rgba(0,0,0,0.8)',
         minHeight: '220px',
       }}
@@ -175,7 +241,9 @@ function SubGroupColumn({
         <p className="font-['Changa_One'] text-[0.75rem] uppercase text-[#c8a84b] tracking-wider">
           Grupo {colIndex + 1}
         </p>
-        <p className="text-[0.62rem] text-[#666]">{members.length}/5</p>
+        <p className="text-[0.62rem]" style={{ color: isFull ? '#d9534f' : '#666' }}>
+          {members.length}/5{isFull && ' · lleno'}
+        </p>
       </div>
       {/* Frames */}
       <div className="flex flex-col gap-[2px] p-[3px] flex-1">
@@ -187,6 +255,57 @@ function SubGroupColumn({
           members.map((s) => <UnitFrame key={s.id} signup={s} isDraggable={isAdmin} />)
         )}
       </div>
+
+      {/* Group buffs footer */}
+      {(() => {
+        const buffMap = new Map<string, { buff: SpecBuff; providers: string[] }>();
+        members.forEach((s) => {
+          const buffs = getBuffsForSignup(s, specMap);
+          buffs
+            .filter(b => b.category !== 'debuff' && b.scope !== 'raid')
+            .forEach((b) => {
+              if (!buffMap.has(b.name)) buffMap.set(b.name, { buff: b, providers: [] });
+              const entry = buffMap.get(b.name)!;
+              if (!entry.providers.includes(s.name)) entry.providers.push(s.name);
+            });
+        });
+        if (buffMap.size === 0) return null;
+        return (
+          <div
+            className="px-2 py-1.5 flex flex-wrap gap-[3px]"
+            style={{ borderTop: '1px solid rgba(255,255,255,0.07)', background: 'rgba(0,0,0,0.3)' }}
+          >
+            {Array.from(buffMap.values()).map(({ buff, providers }) => (
+              <div key={buff.name} className="relative group/gbuff">
+                <img
+                  src={`https://wow.zamimg.com/images/wow/icons/medium/${buff.icon}.jpg`}
+                  alt={buff.name}
+                  className="w-[30px] rounded-[2px] object-cover"
+                  style={{ outline: `1px solid ${BUFF_CATEGORY_COLORS[buff.category]}88` }}
+                  onError={(e: any) => {
+                    e.target.style.display = 'none';
+                    const fallback = e.target.nextSibling;
+                    if (fallback) fallback.style.display = 'flex';
+                  }}
+                />
+                <div
+                  className="items-center justify-center w-[30px] h-[30px] rounded-[2px] text-[0.5rem] text-center leading-tight px-0.5"
+                  style={{ display: 'none', background: `${BUFF_CATEGORY_COLORS[buff.category]}22`, outline: `1px solid ${BUFF_CATEGORY_COLORS[buff.category]}88`, color: BUFF_CATEGORY_COLORS[buff.category] }}
+                >
+                  {buff.name.split(' ')[0]}
+                </div>
+                <div className="absolute bottom-full left-0 mb-1 z-50 hidden group-hover/gbuff:block pointer-events-none">
+                  <div className="bg-[#0d0d10] border border-[rgba(255,255,255,0.15)] rounded-[3px] px-2 py-1.5 shadow-xl min-w-[130px]">
+                    <p className="text-[0.7rem] text-white font-medium mb-0.5">{buff.name}</p>
+                    {buff.description && <p className="text-[0.62rem] text-[#8b8b99] mb-1">{buff.description}</p>}
+                    {providers.map((p) => <p key={p} className="text-[0.6rem] text-[#c8a84b]">· {p}</p>)}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -195,15 +314,16 @@ function SubGroupColumn({
 export default function RaidViewer() {
   const { raidId, groupId } = useParams<{ raidId: string; groupId: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const isAdmin = !!user && ADMIN_EMAILS.includes(user.email ?? '');
+  const { user, isAdmin } = useAuth();
 
   const [raidTitle, setRaidTitle] = useState('');
   const [raidType, setRaidType] = useState<RaidType | null>(null);
   const [group, setGroup] = useState<RaidGroup | null>(null);
   const [members, setMembers] = useState<Signup[]>([]);
+  const [specMap, setSpecMap] = useState<Record<string, string>>({}); // user_id → specKey
   const [loading, setLoading] = useState(true);
   const [activeOver, setActiveOver] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   // colIndex per signupId (admin visual arrangement, local state only)
@@ -230,6 +350,20 @@ export default function RaidViewer() {
       if (groupRes.data) setGroup(groupRes.data);
       if (signupsRes.data) {
         setMembers(signupsRes.data);
+
+        // Fetch specs for all members that have a user_id
+        const userIds = signupsRes.data.filter(s => s.user_id).map(s => s.user_id!);
+        if (userIds.length > 0) {
+          const { data: chars } = await supabase
+            .from('user_characters')
+            .select('user_id, char_spec')
+            .in('user_id', userIds);
+          if (chars) {
+            const map: Record<string, string> = {};
+            chars.forEach((c: any) => { if (c.char_spec) map[c.user_id] = c.char_spec; });
+            setSpecMap(map);
+          }
+        }
         // Default distribution: fill columns of 5 in order
         const assignment: Record<string, number> = {};
         signupsRes.data.forEach((s, i) => {
@@ -242,9 +376,14 @@ export default function RaidViewer() {
     }
   };
 
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveOver(null);
+    setActiveId(null);
     if (!over) return;
 
     const signupId = active.id as string;
@@ -291,6 +430,7 @@ export default function RaidViewer() {
           members={colMembers}
           isAdmin={isAdmin}
           isOver={activeOver === `col-${i}`}
+          specMap={specMap}
         />
       ))}
     </div>
@@ -346,15 +486,31 @@ export default function RaidViewer() {
           </div>
         ) : isAdmin ? (
           <DndContext
+            onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
             onDragOver={(e) => setActiveOver(e.over?.id as string ?? null)}
           >
             {grid}
+            <DragOverlay dropAnimation={null}>
+              {activeId ? (
+                <UnitFrame
+                  signup={members.find((m) => m.id === activeId)!}
+                  isDraggable={false}
+                />
+              ) : null}
+            </DragOverlay>
           </DndContext>
         ) : (
           grid
         )}
       </div>
+
+      {/* Buffs / Debuffs panel */}
+      {members.length > 0 && (
+        <div className="max-w-[1100px] mx-auto px-6">
+          <RaidBuffsPanel members={members} specMap={specMap} />
+        </div>
+      )}
     </div>
   );
 }

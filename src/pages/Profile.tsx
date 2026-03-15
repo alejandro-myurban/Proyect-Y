@@ -3,10 +3,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Edit2, Check, Shield, Heart, Swords, CalendarDays, Package, LogOut, UserCircle2, Settings2, Camera } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import {
   CLASSES,
-  ADMIN_EMAILS,
   getAvailableRoles,
   slugClass,
   getClassIcon,
@@ -17,6 +16,7 @@ import { sileo } from 'sileo';
 import { AvatarPickerModal } from '../components/profile/AvatarPickerModal';
 import { CLASS_BANNERS } from '../components/profile/classBanners';
 import { BisPanel } from '../components/profile/BisPanel';
+import { getAllSpecsForClass } from '../data/specBuffs';
 import type { UserCharacter, Signup, LootEntry, Raid } from '../types/calendar';
 
 const ROLE_ICONS: Record<CharRole, React.ReactNode> = {
@@ -36,9 +36,8 @@ function formatDate(dateStr: string) {
 }
 
 export default function Profile() {
-  const { user, signOut, setAvatarUrl: setGlobalAvatarUrl } = useAuth();
+  const { user, signOut, isAdmin, isSuperAdmin, setAvatarUrl: setGlobalAvatarUrl } = useAuth();
   const navigate = useNavigate();
-  const isAdmin = !!user && ADMIN_EMAILS.includes(user.email ?? '');
 
   const [character, setCharacter] = useState<UserCharacter | null>(null);
   const [editing, setEditing] = useState(false);
@@ -62,6 +61,13 @@ export default function Profile() {
     const available = getAvailableRoles(charClass);
     if (!available.includes(charRole)) setCharRole(available[0]);
   }, [charClass]);
+
+  // Auto-guardar spec si solo hay una opción y no está seteada aún
+  useEffect(() => {
+    if (!character || character.char_spec) return;
+    const specs = getAllSpecsForClass(character.char_class);
+    if (specs.length === 1) handleSelectSpec(specs[0].specKey);
+  }, [character?.id]);
 
   const loadAll = async () => {
     if (!user) return;
@@ -150,6 +156,20 @@ export default function Profile() {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSelectSpec = async (specKey: string) => {
+    if (!user) return;
+    const { error } = await supabase
+      .from('user_characters')
+      .update({ char_spec: specKey })
+      .eq('user_id', user.id);
+    if (error) {
+      sileo.error({ title: 'Error al guardar spec', description: error.message, fill: 'black', styles: { title: 'text-white!', description: 'text-white/75!' } });
+    } else {
+      setCharacter((prev) => prev ? { ...prev, char_spec: specKey } : prev);
+      sileo.success({ title: 'Especialización guardada', fill: 'black', styles: { title: 'text-white!', description: 'text-white/75!' } });
     }
   };
 
@@ -247,6 +267,28 @@ export default function Profile() {
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-[0.8rem] text-[#8b8b99]">{user.email}</p>
               </div>
+              {character && (() => {
+                const specs = getAllSpecsForClass(character.char_class);
+                if (specs.length === 0) return null;
+                return (
+                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                    {specs.map(({ specKey, specLabel }) => (
+                      <button
+                        key={specKey}
+                        onClick={() => handleSelectSpec(specKey)}
+                        className="text-[0.68rem] font-['Changa_One'] uppercase px-2 py-0.5 rounded-[3px] transition-all duration-100"
+                        style={
+                          character.char_spec === specKey
+                            ? { background: `${classColor}33`, color: classColor, border: `1px solid ${classColor}77` }
+                            : { background: 'rgba(255,255,255,0.05)', color: '#8b8b99', border: '1px solid rgba(255,255,255,0.1)' }
+                        }
+                      >
+                        {specLabel}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           </div>
           {/* Actions top-right */}
@@ -258,6 +300,15 @@ export default function Profile() {
                 style={{ background: '#f0a500', borderColor: '#f0a500', color: '#000' }}
               >
                 <Settings2 size={13} /> Voces
+              </button>
+            )}
+            {isSuperAdmin && (
+              <button
+                onClick={() => navigate('/admin/usuarios')}
+                className="btn btn-sm flex items-center gap-2 text-[0.8rem]"
+                style={{ background: '#7c3aed', borderColor: '#7c3aed', color: '#fff' }}
+              >
+                <Shield size={13} /> Admins
               </button>
             )}
             <button
@@ -441,6 +492,7 @@ export default function Profile() {
           charRole={character.char_role as CharRole}
           charName={character.char_name}
           classColor={classColor}
+          userId={user.id}
           onSpecDetected={setDetectedSpec}
         />
       )}
