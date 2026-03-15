@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Edit2, Check, Shield, Heart, Swords, CalendarDays, Package, LogOut, UserCircle2, Settings2, Camera } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import {
   CLASSES,
-  ADMIN_EMAILS,
   getAvailableRoles,
   slugClass,
   getClassIcon,
@@ -17,6 +16,7 @@ import { sileo } from 'sileo';
 import { AvatarPickerModal } from '../components/profile/AvatarPickerModal';
 import { CLASS_BANNERS } from '../components/profile/classBanners';
 import { BisPanel } from '../components/profile/BisPanel';
+import { getAllSpecsForClass } from '../data/specBuffs';
 import type { UserCharacter, Signup, LootEntry, Raid } from '../types/calendar';
 
 const ROLE_ICONS: Record<CharRole, React.ReactNode> = {
@@ -36,9 +36,8 @@ function formatDate(dateStr: string) {
 }
 
 export default function Profile() {
-  const { user, signOut, setAvatarUrl: setGlobalAvatarUrl } = useAuth();
+  const { user, signOut, isAdmin, isSuperAdmin, setAvatarUrl: setGlobalAvatarUrl } = useAuth();
   const navigate = useNavigate();
-  const isAdmin = !!user && ADMIN_EMAILS.includes(user.email ?? '');
 
   const [character, setCharacter] = useState<UserCharacter | null>(null);
   const [editing, setEditing] = useState(false);
@@ -47,6 +46,7 @@ export default function Profile() {
   const [charRole, setCharRole] = useState<CharRole>('DPS');
   const [saving, setSaving] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [detectedSpec, setDetectedSpec] = useState<string | null>(null);
 
   const [mySignups, setMySignups] = useState<(Signup & { raid: Pick<Raid, 'id' | 'title' | 'date' | 'raid_type' | 'status' | 'raid_groups'> })[]>([]);
   const [myLoot, setMyLoot] = useState<(LootEntry & { raid_title: string })[]>([]);
@@ -61,6 +61,13 @@ export default function Profile() {
     const available = getAvailableRoles(charClass);
     if (!available.includes(charRole)) setCharRole(available[0]);
   }, [charClass]);
+
+  // Auto-guardar spec si solo hay una opción y no está seteada aún
+  useEffect(() => {
+    if (!character || character.char_spec) return;
+    const specs = getAllSpecsForClass(character.char_class);
+    if (specs.length === 1) handleSelectSpec(specs[0].specKey);
+  }, [character?.id]);
 
   const loadAll = async () => {
     if (!user) return;
@@ -149,6 +156,20 @@ export default function Profile() {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSelectSpec = async (specKey: string) => {
+    if (!user) return;
+    const { error } = await supabase
+      .from('user_characters')
+      .update({ char_spec: specKey })
+      .eq('user_id', user.id);
+    if (error) {
+      sileo.error({ title: 'Error al guardar spec', description: error.message, fill: 'black', styles: { title: 'text-white!', description: 'text-white/75!' } });
+    } else {
+      setCharacter((prev) => prev ? { ...prev, char_spec: specKey } : prev);
+      sileo.success({ title: 'Especialización guardada', fill: 'black', styles: { title: 'text-white!', description: 'text-white/75!' } });
     }
   };
 
@@ -243,7 +264,31 @@ export default function Profile() {
               <h1 className="text-[1.6rem] text-white font-['Changa_One'] uppercase leading-none mb-1">
                 {character?.char_name ?? <span className="text-[#8b8b99] text-[1.2rem]">Sin personaje</span>}
               </h1>
-              <p className="text-[0.8rem] text-[#8b8b99]">{user.email}</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-[0.8rem] text-[#8b8b99]">{user.email}</p>
+              </div>
+              {character && (() => {
+                const specs = getAllSpecsForClass(character.char_class);
+                if (specs.length === 0) return null;
+                return (
+                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                    {specs.map(({ specKey, specLabel }) => (
+                      <button
+                        key={specKey}
+                        onClick={() => handleSelectSpec(specKey)}
+                        className="text-[0.68rem] font-['Changa_One'] uppercase px-2 py-0.5 rounded-[3px] transition-all duration-100"
+                        style={
+                          character.char_spec === specKey
+                            ? { background: `${classColor}33`, color: classColor, border: `1px solid ${classColor}77` }
+                            : { background: 'rgba(255,255,255,0.05)', color: '#8b8b99', border: '1px solid rgba(255,255,255,0.1)' }
+                        }
+                      >
+                        {specLabel}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           </div>
           {/* Actions top-right */}
@@ -255,6 +300,15 @@ export default function Profile() {
                 style={{ background: '#f0a500', borderColor: '#f0a500', color: '#000' }}
               >
                 <Settings2 size={13} /> Voces
+              </button>
+            )}
+            {isSuperAdmin && (
+              <button
+                onClick={() => navigate('/admin/usuarios')}
+                className="btn btn-sm flex items-center gap-2 text-[0.8rem]"
+                style={{ background: '#7c3aed', borderColor: '#7c3aed', color: '#fff' }}
+              >
+                <Shield size={13} /> Admins
               </button>
             )}
             <button
@@ -291,9 +345,19 @@ export default function Profile() {
                   <p className="font-['Changa_One'] text-[1.1rem] text-white">{character.char_name}</p>
                   <p className="text-[0.78rem] text-[#8b8b99]">{character.char_class}</p>
                 </div>
-                <div className="flex items-center gap-1.5 text-[0.8rem] text-[#8b8b99]">
-                  {ROLE_ICONS[character.char_role as CharRole]}
-                  <span>{character.char_role}</span>
+                <div className="flex flex-col items-end gap-1">
+                  <div className="flex items-center gap-1.5 text-[0.8rem] text-[#8b8b99]">
+                    {ROLE_ICONS[character.char_role as CharRole]}
+                    <span>{character.char_role}</span>
+                  </div>
+                  {detectedSpec && (
+                    <span
+                      className="text-[0.65rem] font-['Changa_One'] uppercase px-1.5 py-0.5 rounded-[3px]"
+                      style={{ background: `${classColor}22`, color: classColor, border: `1px solid ${classColor}44` }}
+                    >
+                      {detectedSpec}
+                    </span>
+                  )}
                 </div>
               </div>
               <button onClick={() => setEditing(true)} className="btn w-full flex items-center justify-center gap-2 text-[0.82rem]">
@@ -428,6 +492,8 @@ export default function Profile() {
           charRole={character.char_role as CharRole}
           charName={character.char_name}
           classColor={classColor}
+          userId={user.id}
+          onSpecDetected={setDetectedSpec}
         />
       )}
 
@@ -452,9 +518,10 @@ function RaidSignupRow({ signup, past }: { signup: any; past?: boolean }) {
   if (!raid) return null;
 
   const myGroup = raid.raid_groups?.find((g: any) => g.id === signup.raid_group_id);
+  const viewerHref = signup.raid_group_id ? `/raid/${raid.id}/visor/${signup.raid_group_id}` : null;
 
-  return (
-    <div className={`flex items-center gap-4 px-4 py-3 rounded-[4px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.02)] ${past ? 'opacity-60' : ''}`}>
+  const inner = (
+    <div className={`flex items-center gap-4 px-4 py-3 rounded-[4px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.02)] ${past ? 'opacity-60' : ''} ${viewerHref ? 'hover:border-[rgba(255,255,255,0.12)] hover:bg-[rgba(255,255,255,0.04)] transition-colors cursor-pointer' : ''}`}>
       <div className="flex-1 min-w-0">
         <p className="font-['Changa_One'] text-[0.9rem] text-white uppercase tracking-wide">{raid.title}</p>
         <p className="text-[0.72rem] text-[#8b8b99]">{formatDate(raid.date)}</p>
@@ -479,4 +546,6 @@ function RaidSignupRow({ signup, past }: { signup: any; past?: boolean }) {
       </div>
     </div>
   );
+
+  return viewerHref ? <Link to={viewerHref}>{inner}</Link> : inner;
 }

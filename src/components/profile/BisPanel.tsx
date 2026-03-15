@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { BIS_DATA, type BisItem } from '../../data/bisData';
 import type { CharRole } from '../calendar/constants';
+import { supabase } from '../../lib/supabase';
 
 // ── Slot order (WoW armory style) ────────────────────────────────────────────
 const SLOT_ORDER = [
@@ -220,9 +221,11 @@ interface BisPanelProps {
   charRole: CharRole;
   charName: string;
   classColor?: string;
+  userId?: string;
+  onSpecDetected?: (spec: string) => void;
 }
 
-export function BisPanel({ charClass, charRole, charName, classColor = '#86b518' }: BisPanelProps) {
+export function BisPanel({ charClass, charRole, charName, classColor = '#86b518', userId, onSpecDetected }: BisPanelProps) {
   const specKeys = CLASS_ROLE_SPECS[charClass]?.[charRole] ?? [];
   const [activeSpec, setActiveSpec] = useState(0);
   const [activePhase, setActivePhase] = useState(1);
@@ -242,7 +245,23 @@ export function BisPanel({ charClass, charRole, charName, classColor = '#86b518'
     const base = import.meta.env.DEV ? 'http://localhost:3001/api/character' : '/api/character';
     fetch(`${base}?realm=${realm}&name=${charName}`)
       .then(r => r.json())
-      .then(data => { if (data.gear) setGear(data.gear); })
+      .then(data => {
+        if (data.gear) setGear(data.gear);
+        const wclSpec: string | undefined = data.rankings?.allStars?.[0]?.spec;
+        if (wclSpec) {
+          const idx = specKeys.findIndex(k => k.split('/')[1].toLowerCase() === wclSpec.toLowerCase());
+          if (idx !== -1) {
+            setActiveSpec(idx);
+            const fullSpecKey = specKeys[idx];
+            onSpecDetected?.(wclSpec);
+            if (userId) {
+              supabase.from('user_characters').update({ char_spec: fullSpecKey }).eq('user_id', userId);
+            }
+          } else {
+            onSpecDetected?.(wclSpec);
+          }
+        }
+      })
       .catch(() => {})
       .finally(() => setGearLoading(false));
   }, [realm, charName]);

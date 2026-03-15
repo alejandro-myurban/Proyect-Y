@@ -139,5 +139,3 @@ export function getClassIcon(className: string) {
   return `https://wow.zamimg.com/images/wow/icons/medium/classicon_${slug}.jpg`;
 }
 
-// Set your admin emails here
-export const ADMIN_EMAILS: string[] = ['kavaliergrau3@gmail.com', 'saralopmel9487@gmail.com', 'ivansym3@gmail.com'];

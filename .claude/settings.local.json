@@ -6,7 +6,9 @@
       "Bash(cd C:/Users/User/Proyect-Y && npm list @wowserhq/scene 2>&1)",
       "Bash(find C:/Users/User/Proyect-Y/node_modules/@wowserhq/scene -name \"ModelManager.d.ts\" 2>/dev/null | xargs cat 2>/dev/null)",
       "Bash(find C:/Users/User/Proyect-Y/node_modules/@wowserhq/scene -name \"Model.d.ts\" 2>/dev/null | xargs cat 2>/dev/null)",
-      "Bash(wc -l C:/Users/User/Proyect-Y/*.lua)"
+      "Bash(wc -l C:/Users/User/Proyect-Y/*.lua)",
+      "Bash(mkdir -p \"C:/Users/User/.agent/diagrams\")",
+      "Read(//c/Users/User/.agent/diagrams/**)"
     ]
   }
 }
