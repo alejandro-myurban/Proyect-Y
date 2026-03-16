@@ -227,7 +227,7 @@ function SubGroupColumn({
           ? '2px solid rgba(217,83,79,0.4)'
           : isOver ? '2px solid rgba(134,181,24,0.5)' : '2px solid rgba(255,255,255,0.1)',
         outline: isOver ? 'none' : '1px solid rgba(0,0,0,0.8)',
-        minHeight: '220px',
+        minHeight: '420px',
       }}
     >
       {/* Column header */}
