@@ -2,10 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { History, CalendarDays } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import {
   CLASSES,
-  ADMIN_EMAILS,
   getAvailableRoles,
   type RaidType,
   type RaidTypeCombo,
@@ -26,8 +25,7 @@ export type { Signup, LootEntry, Raid } from '../types/calendar';
 type View = 'upcoming' | 'history';
 
 export default function Calendar() {
-  const { user } = useAuth();
-  const isAdmin = !!user && ADMIN_EMAILS.includes(user.email ?? '');
+  const { user, isAdmin } = useAuth();
 
   const [raids, setRaids] = useState<Raid[]>([]);
   const [loading, setLoading] = useState(true);

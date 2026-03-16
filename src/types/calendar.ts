@@ -8,6 +8,7 @@ export interface UserCharacter {
   char_name: string;
   char_class: string;
   char_role: CharRole;
+  char_spec?: string | null;
   avatar_url?: string | null;
 }
 

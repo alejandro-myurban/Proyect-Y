@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, X, Loader2, MessageCircle, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../context/AuthContext';
-import { ADMIN_EMAILS } from '../components/calendar/constants';
+import { useAuth } from '../context/useAuth';
 
 interface Voice {
   id: string;
@@ -15,14 +14,11 @@ interface Voice {
 }
 
 export default function AdminVoices() {
-  const { user } = useAuth();
+  const { isAdmin } = useAuth();
   const navigate = useNavigate();
   const [voices, setVoices] = useState<Voice[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
-
-  const isAdmin = !!user && ADMIN_EMAILS.includes(user.email ?? '');
-  console.log('isAdmin:', isAdmin, 'user:', user?.email);
 
   useEffect(() => {
     if (!isAdmin) {

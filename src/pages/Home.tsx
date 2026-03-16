@@ -10,7 +10,7 @@ function Home() {
     return (
         <div className="flex flex-col gap-6 pb-20">
             {/* ... hero and features remain the same ... */}
-            <section className="min-h-[50vh] flex flex-col justify-center items-center text-center relative overflow-hidden py-24 bg-black">
+            <section className="min-h-[50vh] flex flex-col justify-center items-center text-center relative overflow-hidden py-40 bg-black">
                 {/* Video */}
                 <div className="absolute inset-0 z-0">
                     <video
