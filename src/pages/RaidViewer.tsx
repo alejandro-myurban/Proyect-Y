@@ -227,7 +227,7 @@ function SubGroupColumn({
           ? '2px solid rgba(217,83,79,0.4)'
           : isOver ? '2px solid rgba(134,181,24,0.5)' : '2px solid rgba(255,255,255,0.1)',
         outline: isOver ? 'none' : '1px solid rgba(0,0,0,0.8)',
-        minHeight: '220px',
+        minHeight: '420px',
       }}
     >
       {/* Column header */}
@@ -310,6 +310,58 @@ function SubGroupColumn({
   );
 }
 
+// ── Visual bench area (droppable) ────────────────────────────────────────────
+function BenchColumn({
+  members,
+  isAdmin,
+  isOver,
+}: {
+  members: Signup[];
+  isAdmin: boolean;
+  isOver: boolean;
+}) {
+  const { setNodeRef } = useDroppable({ id: 'col-bench' });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className="mt-6 flex flex-col overflow-hidden transition-colors duration-150"
+      style={{
+        background: isOver ? 'rgba(134,181,24,0.06)' : 'rgba(20,20,26,0.9)',
+        border: isOver ? '2px solid rgba(134,181,24,0.5)' : '2px dashed rgba(255,255,255,0.2)',
+        outline: isOver ? 'none' : '1px solid rgba(0,0,0,0.8)',
+        minHeight: '100px',
+      }}
+    >
+      <div
+        className="px-3 py-1.5 flex items-center justify-between"
+        style={{
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(0,0,0,0.3) 100%)',
+          borderBottom: '2px solid rgba(0,0,0,0.6)',
+        }}
+      >
+        <p className="font-['Changa_One'] text-[0.75rem] uppercase text-[#a8a8a8] tracking-wider">
+          Banquillo (Bench)
+        </p>
+        <p className="text-[0.62rem] text-[#666]">{members.length} jugadores</p>
+      </div>
+      <div className="flex flex-wrap gap-[4px] p-[6px] flex-1 items-start">
+        {members.length === 0 ? (
+          <div className="w-full flex-1 flex items-center justify-center min-h-[60px]">
+            <p className="text-[0.6rem] text-[#2a2a33] uppercase tracking-widest">— vacío —</p>
+          </div>
+        ) : (
+          members.map((s) => (
+            <div key={s.id} className="w-[155px] flex-shrink-0">
+              <UnitFrame signup={s} isDraggable={isAdmin} />
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main page ────────────────────────────────────────────────────────────────
 export default function RaidViewer() {
   const { raidId, groupId } = useParams<{ raidId: string; groupId: string }>();
@@ -364,10 +416,15 @@ export default function RaidViewer() {
             setSpecMap(map);
           }
         }
-        // Default distribution: fill columns of 5 in order
+        // Default distribution: fill columns of 5 in order, overfill goes to Bench (-1)
+        const rType = raidRes.data?.raid_type as RaidType | null;
+        const cap = rType ? (RAID_CONFIG[rType]?.capacity ?? 25) : 25;
+        const maxGroups = cap / 5;
+
         const assignment: Record<string, number> = {};
         signupsRes.data.forEach((s, i) => {
-          assignment[s.id] = Math.floor(i / 5);
+          const defaultGroup = Math.floor(i / 5);
+          assignment[s.id] = defaultGroup < maxGroups ? defaultGroup : -1;
         });
         setColAssignment(assignment);
       }
@@ -387,8 +444,8 @@ export default function RaidViewer() {
     if (!over) return;
 
     const signupId = active.id as string;
-    const targetCol = over.id as string; // "col-0", "col-1", ...
-    const colIdx = parseInt(targetCol.replace('col-', ''), 10);
+    const targetCol = over.id as string; // "col-0", "col-1", ..., "col-bench"
+    const colIdx = targetCol === 'col-bench' ? -1 : parseInt(targetCol.replace('col-', ''), 10);
 
     setColAssignment((prev) => ({ ...prev, [signupId]: colIdx }));
     setSaving(true);
@@ -408,10 +465,15 @@ export default function RaidViewer() {
   const numCols = capacity / 5;
   // Build columns from colAssignment
   const cols: Signup[][] = Array.from({ length: numCols }, () => []);
+  const bench: Signup[] = [];
+
   members.forEach((s) => {
-    const col = colAssignment[s.id] ?? 0;
-    const safeCol = Math.min(col, numCols - 1);
-    cols[safeCol].push(s);
+    const col = colAssignment[s.id] ?? -1;
+    if (col >= 0 && col < numCols) {
+      cols[col].push(s);
+    } else {
+      bench.push(s);
+    }
   });
 
   const tanks = members.filter((s) => s.role === 'Tanque').length;
@@ -419,21 +481,28 @@ export default function RaidViewer() {
   const dps = members.filter((s) => s.role === 'DPS').length;
 
   const grid = (
-    <div
-      className="grid gap-3"
-      style={{ gridTemplateColumns: `repeat(${numCols}, minmax(155px, 1fr))` }}
-    >
-      {cols.map((colMembers, i) => (
-        <SubGroupColumn
-          key={i}
-          colIndex={i}
-          members={colMembers}
-          isAdmin={isAdmin}
-          isOver={activeOver === `col-${i}`}
-          specMap={specMap}
-        />
-      ))}
-    </div>
+    <>
+      <div
+        className="grid gap-3"
+        style={{ gridTemplateColumns: `repeat(${numCols}, minmax(155px, 1fr))` }}
+      >
+        {cols.map((colMembers, i) => (
+          <SubGroupColumn
+            key={i}
+            colIndex={i}
+            members={colMembers}
+            isAdmin={isAdmin}
+            isOver={activeOver === `col-${i}`}
+            specMap={specMap}
+          />
+        ))}
+      </div>
+      <BenchColumn
+        members={bench}
+        isAdmin={isAdmin}
+        isOver={activeOver === 'col-bench'}
+      />
+    </>
   );
 
   return (
