@@ -27,6 +27,7 @@ export interface Signup {
   class: string;
   role: CharRole;
   raid_group_id: string | null;
+  viewer_col: number | null;
 }
 
 export interface LootEntry {

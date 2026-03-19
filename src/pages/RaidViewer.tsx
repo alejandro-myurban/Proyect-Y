@@ -423,8 +423,12 @@ export default function RaidViewer() {
 
         const assignment: Record<string, number> = {};
         signupsRes.data.forEach((s, i) => {
-          const defaultGroup = Math.floor(i / 5);
-          assignment[s.id] = defaultGroup < maxGroups ? defaultGroup : -1;
+          if (s.viewer_col !== null && s.viewer_col !== undefined) {
+            assignment[s.id] = s.viewer_col < maxGroups ? s.viewer_col : -1;
+          } else {
+            const defaultGroup = Math.floor(i / 5);
+            assignment[s.id] = defaultGroup < maxGroups ? defaultGroup : -1;
+          }
         });
         setColAssignment(assignment);
       }
@@ -449,8 +453,11 @@ export default function RaidViewer() {
 
     setColAssignment((prev) => ({ ...prev, [signupId]: colIdx }));
     setSaving(true);
-    // Visual-only rearrangement — no DB write needed for sub-group order
-    setTimeout(() => setSaving(false), 500);
+    supabase
+      .from('signups')
+      .update({ viewer_col: colIdx })
+      .eq('id', signupId)
+      .then(() => setSaving(false));
   };
 
   if (loading) {
