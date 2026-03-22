@@ -180,7 +180,7 @@ export function RaidBannerCard({
   const accentColor = config?.accentColor ?? '#86b518';
   const borderColor = config?.borderColor ?? 'rgba(134,181,24,0.6)';
 
-  const tabs: Tab[] = ['roster', 'loot', 'chat', ...(isAdmin ? ['grupos' as Tab] : [])];
+  const tabs: Tab[] = ['roster', 'loot', 'chat', 'grupos'];
   const tabLabels: Record<Tab, { icon: React.ReactNode; label: string; badge?: number }> = {
     roster: { icon: <Users size={13} />, label: 'Apuntados', badge: signups.length },
     loot: { icon: <Package size={13} />, label: 'Botín', badge: loot.length },
@@ -506,9 +506,10 @@ export function RaidBannerCard({
                     )}
                   </div>
                 )}
-                {activeTab === 'grupos' && isAdmin && (
+                {activeTab === 'grupos' && (
                   <GruposTab
                     raid={raid}
+                    isAdmin={isAdmin}
                     onOrganize={() => onOpenGroupOrganizer(raid)}
                   />
                 )}
@@ -797,7 +798,7 @@ function LootTab({
 }
 
 /* ── Grupos Tab (admin view within card) ── */
-function GruposTab({ raid, onOrganize }: { raid: Raid; onOrganize: () => void }) {
+function GruposTab({ raid, isAdmin, onOrganize }: { raid: Raid; isAdmin: boolean; onOrganize: () => void }) {
   const navigate = useNavigate();
   const config = raid.raid_type ? RAID_CONFIG[raid.raid_type] : null;
   const capacity = config?.capacity ?? 25;
@@ -810,11 +811,15 @@ function GruposTab({ raid, onOrganize }: { raid: Raid; onOrganize: () => void })
       <div className="flex flex-col items-center gap-3 py-8 text-[#555]">
         <Settings2 size={28} />
         <p className="text-[0.82rem] text-[#8b8b99]">
-          {raid.signups.length} personas apuntadas. Organízalos en grupos.
+          {isAdmin
+            ? `${raid.signups.length} personas apuntadas. Organízalos en grupos.`
+            : 'Los grupos aún no han sido configurados.'}
         </p>
-        <button onClick={onOrganize} className="btn btn-primary btn-sm flex items-center gap-2">
-          <Settings2 size={13} /> Organizar Grupos
-        </button>
+        {isAdmin && (
+          <button onClick={onOrganize} className="btn btn-primary btn-sm flex items-center gap-2">
+            <Settings2 size={13} /> Organizar Grupos
+          </button>
+        )}
       </div>
     );
   }
@@ -825,9 +830,11 @@ function GruposTab({ raid, onOrganize }: { raid: Raid; onOrganize: () => void })
         <h4 className="text-[0.75rem] uppercase tracking-widest text-[#8b8b99] font-['Changa_One']">
           {raid.raid_groups.length} Grupos Configurados
         </h4>
-        <button onClick={onOrganize} className="btn btn-sm flex items-center gap-1.5 text-[0.75rem]">
-          <Settings2 size={12} /> Reorganizar
-        </button>
+        {isAdmin && (
+          <button onClick={onOrganize} className="btn btn-sm flex items-center gap-1.5 text-[0.75rem]">
+            <Settings2 size={12} /> Reorganizar
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-3 gap-3 max-[800px]:grid-cols-1">

@@ -8,7 +8,8 @@
       "Bash(find C:/Users/User/Proyect-Y/node_modules/@wowserhq/scene -name \"Model.d.ts\" 2>/dev/null | xargs cat 2>/dev/null)",
       "Bash(wc -l C:/Users/User/Proyect-Y/*.lua)",
       "Bash(mkdir -p \"C:/Users/User/.agent/diagrams\")",
-      "Read(//c/Users/User/.agent/diagrams/**)"
+      "Read(//c/Users/User/.agent/diagrams/**)",
+      "Bash(find /c/Users/User/Proyect-Y/src -type f \\\\\\(-name *.tsx -o -name *.ts \\\\\\))"
     ]
   }
 }

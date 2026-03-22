@@ -1,4 +1,4 @@
-import itemNamesRaw from '../src/data/itemNames.json' assert { type: 'json' };
+import itemNamesRaw from '../src/data/itemNames.json' with { type: 'json' };
 
 const WCL_CLIENT_ID = process.env.WARCRAFT_LOGS_CLIENT_ID;
 const WCL_CLIENT_SECRET = process.env.WARCRAFT_LOGS_CLIENT_SECRET;
