@@ -30,23 +30,22 @@ export default function Calendar() {
   const [raids, setRaids] = useState<Raid[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>('upcoming');
-  const [currentCharacter, setCurrentCharacter] = useState<UserCharacter | null>(null);
+  const [characters, setCharacters] = useState<UserCharacter[]>([]);
 
-  // Cargar personaje del usuario al iniciar
+  // Cargar personajes del usuario al iniciar
   useEffect(() => {
-    const loadCharacter = async () => {
+    const loadCharacters = async () => {
       if (!user) {
-        setCurrentCharacter(null);
+        setCharacters([]);
         return;
       }
       const { data } = await supabase
         .from('user_characters')
         .select('*')
-        .eq('user_id', user.id)
-        .single();
-      if (data) setCurrentCharacter(data);
+        .eq('user_id', user.id);
+      if (data) setCharacters(data);
     };
-    loadCharacter();
+    loadCharacters();
   }, [user]);
 
   // Signup modal state — kept in sync with latest raids data
@@ -461,7 +460,7 @@ export default function Calendar() {
           {isAdmin ? (
             <CreateRaidPanel onCreate={handleCreateRaid} />
           ) : (
-            <CharacterPanel onCharacterChange={setCurrentCharacter} />
+            <CharacterPanel onCharactersChange={setCharacters} characters={characters} />
           )}
         </div>
 
@@ -500,7 +499,7 @@ export default function Calendar() {
                     <RaidBannerCard
                       raid={raid}
                       isAdmin={isAdmin}
-                      currentCharacter={currentCharacter}
+                      characters={characters}
                       currentUserId={user?.id ?? null}
                       onSignUp={openSignupModal}
                       onDeleteRaid={handleDeleteRaid}
@@ -524,7 +523,7 @@ export default function Calendar() {
           open={!!signupRaid}
           onClose={() => setSignupRaid(null)}
           raid={signupRaid}
-          character={currentCharacter}
+          characters={characters}
           onConfirm={async (name, cls, role) => {
             try {
               await handleSignUp(name, cls, role);

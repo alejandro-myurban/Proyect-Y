@@ -13,7 +13,7 @@ interface SignupModalProps {
   open: boolean;
   onClose: () => void;
   raid: Raid;
-  character: UserCharacter | null;
+  characters: UserCharacter[];
   onConfirm: (charName: string, charClass: string, charRole: CharRole) => Promise<void>;
   // For users without saved character
   charName: string;
@@ -36,7 +36,7 @@ export function SignupModal({
   open,
   onClose,
   raid,
-  character,
+  characters,
   onConfirm,
   charName,
   setCharName,
@@ -48,11 +48,20 @@ export function SignupModal({
   allClasses,
 }: SignupModalProps) {
   const [loading, setLoading] = React.useState(false);
+  const [selectedCharId, setSelectedCharId] = React.useState<string>('new');
+
+  React.useEffect(() => {
+    if (open && characters.length > 0) {
+      setSelectedCharId(characters[0].id);
+    }
+  }, [open, characters]);
 
   const config = raid.raid_type ? RAID_CONFIG[raid.raid_type] : null;
-  const displayName = character?.char_name ?? charName;
-  const displayClass = character?.char_class ?? charClass;
-  const displayRole = (character?.char_role ?? charRole) as CharRole;
+  const activeChar = characters.find(c => c.id === selectedCharId);
+
+  const displayName = activeChar?.char_name ?? charName;
+  const displayClass = activeChar?.char_class ?? charClass;
+  const displayRole = (activeChar?.char_role ?? charRole) as CharRole;
 
   const handleConfirm = async () => {
     setLoading(true);
@@ -82,38 +91,58 @@ export function SignupModal({
         </div>
 
         <div className="px-6 pb-6">
-          {character ? (
-            /* User has saved character — show it */
-            <div
-              className={`flex items-center gap-3 p-3 rounded-[4px] border bg-[rgba(255,255,255,0.02)] mb-5 class-${slugClass(character.char_class)}`}
-              style={{ borderColor: 'rgba(255,255,255,0.08)' }}
-            >
-              <img 
-                src={getClassIcon(character.char_class)} 
-                alt={character.char_class}
-                className="w-8 h-8 rounded-[3px] border border-[rgba(0,0,0,0.3)]"
-              />
-              <div className="flex-1">
-                <p className="font-['Changa_One'] text-[0.95rem] text-white">
-                  {character.char_name}
-                </p>
-                <p className="text-[0.72rem] text-[#8b8b99]">{character.char_class}</p>
-              </div>
-              <div className="flex items-center gap-1.5 text-[0.75rem] text-[#8b8b99]">
-                {ROLE_ICONS[character.char_role as CharRole]}
-                <span>{character.char_role}</span>
+          {characters.length > 0 && (
+            <div className="mb-4">
+              <label className="block text-[0.7rem] text-[#8b8b99] mb-1.5 uppercase tracking-widest">
+                Selecciona tu Personaje
+              </label>
+              <div className="grid grid-cols-1 gap-2">
+                {characters.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => setSelectedCharId(c.id)}
+                    className={`flex items-center gap-3 p-2 rounded-[4px] border border-[rgba(255,255,255,0.06)] text-left transition-colors
+                      ${selectedCharId === c.id ? `bg-[rgba(255,255,255,0.08)] border-[#86b518] class-${slugClass(c.char_class)}` : 'bg-[rgba(255,255,255,0.02)] hover:bg-[rgba(255,255,255,0.04)]'}
+                    `}
+                  >
+                    <img 
+                      src={getClassIcon(c.char_class)} 
+                      alt={c.char_class}
+                      className={`w-7 h-7 rounded-[3px] border border-[rgba(0,0,0,0.3)] ${selectedCharId !== c.id ? 'opacity-60' : ''}`}
+                    />
+                    <div className="flex-1">
+                      <p className={`font-['Changa_One'] text-[0.9rem] ${selectedCharId === c.id ? 'text-white' : 'text-[#8b8b99]'}`}>
+                        {c.char_name}
+                      </p>
+                    </div>
+                    <div className={`flex items-center gap-1 text-[0.7rem] ${selectedCharId === c.id ? 'text-white' : 'text-[#8b8b99]'}`}>
+                      {ROLE_ICONS[c.char_role as CharRole]} {c.char_role}
+                    </div>
+                  </button>
+                ))}
+                
+                <button
+                  onClick={() => setSelectedCharId('new')}
+                  className={`flex items-center justify-center p-2 rounded-[4px] border border-[rgba(255,255,255,0.06)] text-[0.8rem] font-['Changa_One'] uppercase transition-colors
+                    ${selectedCharId === 'new' ? 'bg-[rgba(134,181,24,0.1)] text-[#86b518] border-[#86b518]' : 'bg-[rgba(255,255,255,0.02)] text-[#8b8b99] hover:bg-[rgba(255,255,255,0.04)] hover:text-white'}
+                  `}
+                >
+                  Otro / Nuevo
+                </button>
               </div>
             </div>
-          ) : (
-            /* No saved character — show inline form */
-            <div className="flex flex-col gap-3 mb-5">
+          )}
+
+          {(!characters.length || selectedCharId === 'new') && (
+            /* Inline form for a new character */
+            <div className="flex flex-col gap-3 mb-5 p-3 rounded-[4px] border border-[rgba(255,255,255,0.04)] bg-[rgba(255,255,255,0.01)]">
               <div>
                 <label className="block text-[0.7rem] text-[#8b8b99] mb-1.5 uppercase tracking-widest">
                   Nombre del Personaje
                 </label>
                 <input
                   type="text"
-                  className="input-field"
+                  className="input-field max-w-full"
                   placeholder="Ej. Pablito"
                   value={charName}
                   onChange={(e) => setCharName(e.target.value)}
@@ -124,7 +153,7 @@ export function SignupModal({
                   Clase
                 </label>
                 <select
-                  className="input-field select-field"
+                  className="input-field select-field focus:ring-0 max-w-full"
                   value={charClass}
                   onChange={(e) => setCharClass(e.target.value)}
                 >

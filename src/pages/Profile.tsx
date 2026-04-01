@@ -39,8 +39,8 @@ export default function Profile() {
   const { user, signOut, isAdmin, isSuperAdmin, setAvatarUrl: setGlobalAvatarUrl } = useAuth();
   const navigate = useNavigate();
 
-  const [character, setCharacter] = useState<UserCharacter | null>(null);
-  const [editing, setEditing] = useState(false);
+  const [characters, setCharacters] = useState<UserCharacter[]>([]);
+  const [editingId, setEditingId] = useState<string | 'new' | null>(null);
   const [charName, setCharName] = useState('');
   const [charClass, setCharClass] = useState<string>(CLASSES[0]);
   const [charRole, setCharRole] = useState<CharRole>('DPS');
@@ -62,35 +62,24 @@ export default function Profile() {
     if (!available.includes(charRole)) setCharRole(available[0]);
   }, [charClass]);
 
-  // Auto-guardar spec si solo hay una opción y no está seteada aún
-  useEffect(() => {
-    if (!character || character.char_spec) return;
-    const specs = getAllSpecsForClass(character.char_class);
-    if (specs.length === 1) handleSelectSpec(specs[0].specKey);
-  }, [character?.id]);
-
   const loadAll = async () => {
     if (!user) return;
     setLoading(true);
     try {
-      await Promise.all([loadCharacter(), loadSignups()]);
+      await Promise.all([loadCharacters(), loadSignups()]);
     } finally {
       setLoading(false);
     }
   };
 
-  const loadCharacter = async () => {
+  const loadCharacters = async () => {
     if (!user) return;
     const { data } = await supabase
       .from('user_characters')
       .select('*')
-      .eq('user_id', user.id)
-      .single();
+      .eq('user_id', user.id);
     if (data) {
-      setCharacter(data);
-      setCharName(data.char_name);
-      setCharClass(data.char_class);
-      setCharRole(data.char_role as CharRole);
+      setCharacters(data);
     }
   };
 
@@ -129,61 +118,91 @@ export default function Profile() {
     if (!user || !charName.trim()) return;
     setSaving(true);
     try {
+      const payload: any = {
+        user_id: user.id,
+        char_name: charName.trim(),
+        char_class: charClass,
+        char_role: charRole
+      };
+      
+      if (editingId !== 'new') {
+        payload.id = editingId;
+      }
+
       const { data, error } = await supabase
         .from('user_characters')
-        .upsert({ user_id: user.id, char_name: charName.trim(), char_class: charClass, char_role: charRole }, { onConflict: 'user_id' })
+        .upsert(payload)
         .select()
         .single();
+        
       if (error) throw error;
-      setCharacter(data);
-      setEditing(false);
+      
+      if (editingId === 'new') {
+         setCharacters([...characters, data]);
+      } else {
+         setCharacters(characters.map(c => c.id === data.id ? data : c));
+      }
+      setEditingId(null);
       
       sileo.success({
         title: 'Personaje guardado',
-        description: `Tu personaje ${charName} ha sido actualizado.`,
+        description: `El personaje ${charName} ha sido guardado.`,
         fill: "black",
         styles: { title: "text-white!", description: "text-white/75!" }
       });
 
-      // Reload loot in case name changed
       await loadSignups();
     } catch (err: any) {
       sileo.error({
-        title: 'Error al guardar personaje',
+        title: 'Error al guardar',
         description: err.message,
-        fill: "black",
-        styles: { title: "text-white!", description: "text-white/75!" }
+        fill: "black"
       });
     } finally {
       setSaving(false);
     }
   };
 
-  const handleSelectSpec = async (specKey: string) => {
+  const handleEdit = (c: UserCharacter) => {
+    setCharName(c.char_name);
+    setCharClass(c.char_class);
+    setCharRole(c.char_role as CharRole);
+    setEditingId(c.id);
+  };
+
+  const handleCreateNew = () => {
+    setCharName('');
+    setCharClass(CLASSES[0]);
+    setCharRole('DPS');
+    setEditingId('new');
+  };
+
+  const handleSelectSpec = async (specKey: string, charId: string) => {
     if (!user) return;
     const { error } = await supabase
       .from('user_characters')
       .update({ char_spec: specKey })
-      .eq('user_id', user.id);
+      .eq('id', charId);
     if (error) {
       sileo.error({ title: 'Error al guardar spec', description: error.message, fill: 'black', styles: { title: 'text-white!', description: 'text-white/75!' } });
     } else {
-      setCharacter((prev) => prev ? { ...prev, char_spec: specKey } : prev);
+      setCharacters((prev) => prev.map(c => c.id === charId ? { ...c, char_spec: specKey } : c));
       sileo.success({ title: 'Especialización guardada', fill: 'black', styles: { title: 'text-white!', description: 'text-white/75!' } });
     }
   };
 
   const handleSelectAvatar = async (url: string) => {
-    if (!user) return;
+    if (!user || characters.length === 0) return;
+    const mainChar = characters[0];
     const { error } = await supabase
       .from('user_characters')
       .update({ avatar_url: url })
-      .eq('user_id', user.id);
+      .eq('id', mainChar.id);
     if (error) {
       sileo.error({ title: 'Error al guardar avatar', description: error.message, fill: 'black', styles: { title: 'text-white!', description: 'text-white/75!' } });
       return;
     }
-    setCharacter((prev) => prev ? { ...prev, avatar_url: url } : prev);
+    setCharacters((prev) => prev.map(c => c.id === mainChar.id ? { ...c, avatar_url: url } : c));
     setGlobalAvatarUrl(url);
     setShowAvatarPicker(false);
     sileo.success({ title: 'Avatar actualizado', fill: 'black', styles: { title: 'text-white!', description: 'text-white/75!' } });
@@ -195,7 +214,8 @@ export default function Profile() {
 
   if (!user) return null;
 
-  const classColor = character ? (CLASS_COLORS[character.char_class] ?? '#86b518') : '#86b518';
+  const mainCharacter = characters.length > 0 ? characters[0] : null;
+  const classColor = mainCharacter ? (CLASS_COLORS[mainCharacter.char_class] ?? '#86b518') : '#86b518';
 
   return (
     <div className="pb-16 pt-20">
@@ -205,9 +225,9 @@ export default function Profile() {
         style={{ height: '260px' }}
       >
         {/* Class artwork background */}
-        {character?.char_class && CLASS_BANNERS[character.char_class] && (
+        {mainCharacter?.char_class && CLASS_BANNERS[mainCharacter.char_class] && (
           <img
-            src={CLASS_BANNERS[character.char_class]}
+            src={CLASS_BANNERS[mainCharacter.char_class]}
             alt=""
             className="absolute inset-0 w-full h-full object-cover object-center"
             onError={(e: any) => { e.target.style.display = 'none'; }}
@@ -248,8 +268,8 @@ export default function Profile() {
               style={{ borderColor: classColor, boxShadow: `0 0 18px ${classColor}55` }}
               title="Cambiar avatar"
             >
-              {character?.avatar_url ? (
-                <img src={character.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+              {mainCharacter?.avatar_url ? (
+                <img src={mainCharacter.avatar_url} alt="avatar" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center" style={{ background: `${classColor}18` }}>
                   <span className="font-['Changa_One'] text-[2rem]" style={{ color: classColor }}>{userInitial}</span>
@@ -262,23 +282,23 @@ export default function Profile() {
             {/* Name + email */}
             <div className="mb-1">
               <h1 className="text-[1.6rem] text-white font-['Changa_One'] uppercase leading-none mb-1">
-                {character?.char_name ?? <span className="text-[#8b8b99] text-[1.2rem]">Sin personaje</span>}
+                {mainCharacter?.char_name ?? <span className="text-[#8b8b99] text-[1.2rem]">Sin personaje</span>}
               </h1>
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-[0.8rem] text-[#8b8b99]">{user.email}</p>
               </div>
-              {character && (() => {
-                const specs = getAllSpecsForClass(character.char_class);
+              {mainCharacter && (() => {
+                const specs = getAllSpecsForClass(mainCharacter.char_class);
                 if (specs.length === 0) return null;
                 return (
                   <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                     {specs.map(({ specKey, specLabel }) => (
                       <button
                         key={specKey}
-                        onClick={() => handleSelectSpec(specKey)}
+                        onClick={() => handleSelectSpec(specKey, mainCharacter.id)}
                         className="text-[0.68rem] font-['Changa_One'] uppercase px-2 py-0.5 rounded-[3px] transition-all duration-100"
                         style={
-                          character.char_spec === specKey
+                          mainCharacter.char_spec === specKey
                             ? { background: `${classColor}33`, color: classColor, border: `1px solid ${classColor}77` }
                             : { background: 'rgba(255,255,255,0.05)', color: '#8b8b99', border: '1px solid rgba(255,255,255,0.1)' }
                         }
@@ -326,56 +346,54 @@ export default function Profile() {
       <div className="grid grid-cols-[1fr_1fr] gap-6 max-[700px]:grid-cols-1">
         {/* ── Character card ── */}
         <div className="glass-panel p-6 flex flex-col gap-4">
-          <h3 className="flex items-center gap-2 text-white text-[1rem] border-b border-[#2a2a33] pb-3 mb-1">
-            <UserCircle2 size={16} className="text-[#86b518]" /> Tu Personaje
+          <h3 className="flex items-center gap-2 text-white text-[1rem] border-b border-[#2a2a33] pb-3 mb-4">
+            <UserCircle2 size={16} className="text-[#86b518]" /> Tus Personajes
           </h3>
 
-          {!editing && character ? (
-            <div className="flex flex-col gap-4">
-              {/* Character display */}
-              <div
-                className={`flex items-center gap-3 p-4 rounded-[4px] border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] class-${slugClass(character.char_class)}`}
-              >
-                <img 
-                  src={getClassIcon(character.char_class)} 
-                  alt={character.char_class}
-                  className="w-8 h-8 rounded-[4px] border border-[rgba(0,0,0,0.3)] shadow-md"
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="font-['Changa_One'] text-[1.1rem] text-white">{character.char_name}</p>
-                  <p className="text-[0.78rem] text-[#8b8b99]">{character.char_class}</p>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <div className="flex items-center gap-1.5 text-[0.8rem] text-[#8b8b99]">
-                    {ROLE_ICONS[character.char_role as CharRole]}
-                    <span>{character.char_role}</span>
+          {!editingId ? (
+            <div className="flex flex-col gap-3">
+              {characters.length === 0 ? (
+                <p className="text-[0.8rem] text-[#8b8b99]">No tienes personajes guardados.</p>
+              ) : (
+                characters.map((c) => (
+                  <div
+                    key={c.id}
+                    className={`flex items-center gap-3 p-4 rounded-[4px] border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] class-${slugClass(c.char_class)}`}
+                  >
+                    <img 
+                      src={getClassIcon(c.char_class)} 
+                      alt={c.char_class}
+                      className="w-8 h-8 rounded-[4px] border border-[rgba(0,0,0,0.3)] shadow-md"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-['Changa_One'] text-[1.1rem] text-white leading-none">{c.char_name}</p>
+                      <p className="text-[0.78rem] text-[#8b8b99] mt-1">{c.char_class}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="flex items-center gap-1.5 text-[0.8rem] text-[#8b8b99]">
+                        {ROLE_ICONS[c.char_role as CharRole]}
+                        <span>{c.char_role}</span>
+                      </div>
+                      <button onClick={() => handleEdit(c)} className="text-[0.7rem] hover:text-white flex items-center gap-1 text-[#8b8b99] transition-colors mt-0.5">
+                        <Edit2 size={11} /> Editar
+                      </button>
+                    </div>
                   </div>
-                  {detectedSpec && (
-                    <span
-                      className="text-[0.65rem] font-['Changa_One'] uppercase px-1.5 py-0.5 rounded-[3px]"
-                      style={{ background: `${classColor}22`, color: classColor, border: `1px solid ${classColor}44` }}
-                    >
-                      {detectedSpec}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <button onClick={() => setEditing(true)} className="btn w-full flex items-center justify-center gap-2 text-[0.82rem]">
-                <Edit2 size={13} /> Editar Personaje
+                ))
+              )}
+              <button onClick={handleCreateNew} className="btn w-full flex items-center justify-center gap-2 text-[0.82rem] mt-2">
+                <Edit2 size={13} /> Añadir Personaje
               </button>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {!character && (
-                <p className="text-[0.8rem] text-[#8b8b99]">Crea tu personaje para apuntarte a raids.</p>
-              )}
               <div>
                 <label className="block text-[0.7rem] text-[#8b8b99] mb-1.5 uppercase tracking-widest">Nombre</label>
-                <input type="text" className="input-field" placeholder="Ej. Pablito" value={charName} onChange={(e) => setCharName(e.target.value)} />
+                <input type="text" className="input-field max-w-full" placeholder="Ej. Pablito" value={charName} onChange={(e) => setCharName(e.target.value)} />
               </div>
               <div>
                 <label className="block text-[0.7rem] text-[#8b8b99] mb-1.5 uppercase tracking-widest">Clase</label>
-                <select className="input-field select-field" value={charClass} onChange={(e) => setCharClass(e.target.value)}>
+                <select className="input-field select-field focus:ring-0 max-w-full" value={charClass} onChange={(e) => setCharClass(e.target.value)}>
                   {CLASSES.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
@@ -398,13 +416,11 @@ export default function Profile() {
                   ))}
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 mt-2">
                 <button onClick={handleSaveCharacter} disabled={saving || !charName.trim()} className="btn btn-primary flex-1 flex items-center justify-center gap-2">
                   <Check size={14} /> {saving ? 'Guardando...' : 'Guardar'}
                 </button>
-                {character && (
-                  <button onClick={() => setEditing(false)} className="btn px-4">✕</button>
-                )}
+                <button onClick={() => setEditingId(null)} className="btn px-4">✕</button>
               </div>
             </div>
           )}
@@ -486,11 +502,11 @@ export default function Profile() {
       </div>
 
       {/* ── BiS List ── */}
-      {character && (
+      {mainCharacter && (
         <BisPanel
-          charClass={character.char_class}
-          charRole={character.char_role as CharRole}
-          charName={character.char_name}
+          charClass={mainCharacter.char_class}
+          charRole={mainCharacter.char_role as CharRole}
+          charName={mainCharacter.char_name}
           classColor={classColor}
           userId={user.id}
           onSpecDetected={setDetectedSpec}
@@ -502,7 +518,7 @@ export default function Profile() {
       <AnimatePresence>
         {showAvatarPicker && (
           <AvatarPickerModal
-            currentUrl={character?.avatar_url ?? null}
+            currentUrl={mainCharacter?.avatar_url ?? null}
             onSelect={handleSelectAvatar}
             onClose={() => setShowAvatarPicker(false)}
           />

@@ -1,4 +1,4 @@
-export type RaidType = 'karazhan' | 'gruul' | 'magtheridon';
+export type RaidType = 'karazhan' | 'gruul' | 'magtheridon' | string;
 
 export type RaidTypeCombo = [RaidType, RaidType];
 
@@ -11,7 +11,6 @@ export function parseRaidCombo(val: string): RaidTypeCombo | null {
   if (parts.length !== 2) return null;
   const r1 = parts[0].trim() as RaidType;
   const r2 = parts[1].trim() as RaidType;
-  if (!RAID_CONFIG[r1] || !RAID_CONFIG[r2]) return null;
   return [r1, r2];
 }
 
@@ -25,8 +24,8 @@ export function getComboConfig(types: RaidTypeCombo): {
   image: string;
   images: string[];
 } {
-  const c1 = RAID_CONFIG[types[0]];
-  const c2 = RAID_CONFIG[types[1]];
+  const c1 = resolveRaidConfig(types[0])!;
+  const c2 = resolveRaidConfig(types[1])!;
   return {
     label: `${c1.label} + ${c2.label}`,
     capacity: c1.capacity + c2.capacity,
@@ -66,7 +65,7 @@ export interface RaidConfig {
   image: string;
 }
 
-export const RAID_CONFIG: Record<RaidType, RaidConfig> = {
+export const RAID_CONFIG: Record<string, RaidConfig> = {
   karazhan: {
     label: 'Karazhan',
     capacity: 10,
@@ -97,7 +96,37 @@ export const RAID_CONFIG: Record<RaidType, RaidConfig> = {
     bgGradient: 'linear-gradient(135deg, rgba(0,120,60,0.18) 0%, rgba(0,80,40,0.10) 50%, transparent 100%)',
     image: '/raid-magtheridon.webp',
   },
+  custom: {
+    label: "Evento Custom",
+    capacity: 40,
+    accentColor: '#4b6584',
+    borderColor: 'rgba(75, 101, 132, 0.6)',
+    glowColor: 'rgba(75, 101, 132, 0.2)',
+    description: 'Crea tu propio evento',
+    bgGradient: 'linear-gradient(135deg, rgba(75,101,132,0.18) 0%, rgba(20,30,48,0.10) 50%, transparent 100%)',
+    image: '',
+  }
 };
+
+export function resolveRaidConfig(raidTypeValue: string | null | undefined): RaidConfig | null {
+  if (!raidTypeValue) return null;
+  
+  if (raidTypeValue.startsWith('custom:')) {
+    const imageUrl = raidTypeValue.substring(7);
+    return {
+      label: 'Evento Custom',
+      capacity: 40,
+      accentColor: '#4b6584',
+      borderColor: 'rgba(75, 101, 132, 0.6)',
+      glowColor: 'rgba(75, 101, 132, 0.2)',
+      description: 'Evento Personalizado · 40 jugadores',
+      bgGradient: 'linear-gradient(135deg, rgba(75,101,132,0.18) 0%, rgba(20,30,48,0.10) 50%, transparent 100%)',
+      image: imageUrl,
+    };
+  }
+
+  return RAID_CONFIG[raidTypeValue] || null;
+}
 
 export function getAvailableRoles(charClass: string): CharRole[] {
   const roles: CharRole[] = [];

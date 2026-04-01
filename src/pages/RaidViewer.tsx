@@ -11,6 +11,7 @@ import {
   RAID_CONFIG,
   type CharRole,
   type RaidType,
+  resolveRaidConfig,
 } from '../components/calendar/constants';
 import type { Signup, RaidGroup } from '../types/calendar';
 import { getBuffsForClassRole, SPEC_BUFFS, BUFF_CATEGORY_COLORS, type SpecBuff } from '../data/specBuffs';
@@ -417,8 +418,8 @@ export default function RaidViewer() {
           }
         }
         // Default distribution: fill columns of 5 in order, overfill goes to Bench (-1)
-        const rType = raidRes.data?.raid_type as RaidType | null;
-        const cap = rType ? (RAID_CONFIG[rType]?.capacity ?? 25) : 25;
+        const raidConfig = resolveRaidConfig(raidRes.data?.raid_type);
+        const cap = raidConfig ? raidConfig.capacity : 25;
         const maxGroups = cap / 5;
 
         const assignment: Record<string, number> = {};
@@ -468,7 +469,8 @@ export default function RaidViewer() {
     );
   }
 
-  const capacity = raidType ? (RAID_CONFIG[raidType]?.capacity ?? 25) : 25;
+  const config = resolveRaidConfig(raidType);
+  const capacity = config?.capacity ?? 25;
   const numCols = capacity / 5;
   // Build columns from colAssignment
   const cols: Signup[][] = Array.from({ length: numCols }, () => []);
