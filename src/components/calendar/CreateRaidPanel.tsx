@@ -14,28 +14,40 @@ export function CreateRaidPanel({ onCreate }: CreateRaidPanelProps) {
   const [time, setTime] = useState('20:00:00');
   const [loading, setLoading] = useState(false);
   const [isCombo, setIsCombo] = useState(false);
+  const [customTitle, setCustomTitle] = useState('');
+  const [customImage, setCustomImage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!date) return;
     setLoading(true);
     try {
-      const title = isCombo && selectedType1 !== selectedType2
-        ? `${RAID_CONFIG[selectedType1].label} + ${RAID_CONFIG[selectedType2].label}`
-        : RAID_CONFIG[selectedType1].label;
-      
       const dateTimeStr = getDateTimeString(date, time);
+      let t1 = selectedType1 as string;
+      if (t1 === 'custom') t1 = `custom:${customImage}`;
       
+      let finalTitle = finalTitleFromType(selectedType1);
+
       if (isCombo && selectedType1 !== selectedType2) {
-        await onCreate([selectedType1, selectedType2] as RaidTypeCombo, dateTimeStr, title);
+        let t2 = selectedType2 as string;
+        if (t2 === 'custom') t2 = `custom:${customImage}`;
+        let finalTitle2 = finalTitleFromType(selectedType2);
+        await onCreate([t1, t2] as RaidTypeCombo, dateTimeStr, `${finalTitle} + ${finalTitle2}`);
       } else {
-        await onCreate(selectedType1, dateTimeStr, title);
+        await onCreate(t1, dateTimeStr, finalTitle);
       }
       setDate(undefined);
       setTime('20:00:00');
+      setCustomTitle('');
+      setCustomImage('');
     } finally {
       setLoading(false);
     }
+  };
+
+  const finalTitleFromType = (type: string) => {
+    if (type === 'custom') return customTitle || 'Evento Custom';
+    return RAID_CONFIG[type].label;
   };
 
   const getActiveConfig = () => {
@@ -153,6 +165,37 @@ export function CreateRaidPanel({ onCreate }: CreateRaidPanelProps) {
                   </button>
                 )
               )}
+            </div>
+          </div>
+        )}
+
+        {(selectedType1 === 'custom' || (isCombo && selectedType2 === 'custom')) && (
+          <div className="mb-5 flex flex-col gap-3 p-3 bg-[rgba(255,255,255,0.02)] rounded-[4px] border border-[rgba(255,255,255,0.05)]">
+            <div>
+              <label className="block text-[0.7rem] text-[#8b8b99] mb-1.5 uppercase tracking-widest">
+                Título del Evento
+              </label>
+              <input
+                type="text"
+                value={customTitle}
+                onChange={e => setCustomTitle(e.target.value)}
+                className="input-field w-full text-[0.8rem]"
+                placeholder="Ej: Invasión a la Ciudad"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-[0.7rem] text-[#8b8b99] mb-1.5 uppercase tracking-widest">
+                URL de Imagen de Fondo
+              </label>
+              <input
+                type="url"
+                value={customImage}
+                onChange={e => setCustomImage(e.target.value)}
+                className="input-field w-full text-[0.8rem]"
+                placeholder="https://ejemplo.com/imagen.jpg"
+                required
+              />
             </div>
           </div>
         )}

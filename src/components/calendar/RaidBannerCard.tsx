@@ -19,7 +19,7 @@ import {
   Send,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { slugClass, RAID_CONFIG, CLASS_COLORS, getClassIcon, type CharRole, getComboConfig, parseRaidCombo, type RaidTypeCombo } from './constants';
+import { slugClass, RAID_CONFIG, CLASS_COLORS, getClassIcon, type CharRole, getComboConfig, parseRaidCombo, type RaidTypeCombo, resolveRaidConfig } from './constants';
 import type { Raid, Signup, UserCharacter } from '../../types/calendar';
 import ItemSelector from '../ItemSelector';
 import { LootEntryModal } from './LootEntryModal';
@@ -28,7 +28,7 @@ import { supabase } from '../../lib/supabase';
 interface RaidBannerCardProps {
   raid: Raid;
   isAdmin: boolean;
-  currentCharacter: UserCharacter | null;
+  characters: UserCharacter[];
   currentUserId: string | null;
   onSignUp: (raidId: string) => void;
   onDeleteRaid: (raidId: string) => void;
@@ -79,7 +79,7 @@ function formatDate(dateStr: string): string {
 export function RaidBannerCard({
   raid,
   isAdmin,
-  currentCharacter,
+  characters,
   currentUserId,
   onSignUp,
   onDeleteRaid,
@@ -140,7 +140,7 @@ export function RaidBannerCard({
 
   const sendMessage = async () => {
     if (!chatInput.trim() || !currentUserId) return;
-    const username = currentCharacter?.char_name || 'Unknown';
+    const username = mySignup?.name || (characters.length > 0 ? characters[0].char_name : 'Unknown');
     
     await supabase.from('raid_chat').insert({
       raid_id: raid.id,
@@ -154,7 +154,7 @@ export function RaidBannerCard({
   const raidTypeValue = raid.raid_type;
   const isCombo = raidTypeValue?.includes('+') ?? false;
   const comboConfig = isCombo && raidTypeValue ? getComboConfig(raidTypeValue.split('+') as RaidTypeCombo) : null;
-  const config = comboConfig ?? (raid.raid_type ? RAID_CONFIG[raid.raid_type as keyof typeof RAID_CONFIG] : null);
+  const config = comboConfig ?? resolveRaidConfig(raid.raid_type);
   const loot = raid.loot ?? [];
   const signups = raid.signups ?? [];
   const isPast = raid.status === 'closed';
@@ -162,8 +162,8 @@ export function RaidBannerCard({
   // Find current user's signup and group
   const mySignup = currentUserId
     ? signups.find((s) => s.user_id === currentUserId)
-    : currentCharacter
-    ? signups.find((s) => s.name === currentCharacter.char_name)
+    : characters.length > 0
+    ? signups.find((s) => characters.some(c => c.char_name === s.name))
     : null;
 
   const myGroup = mySignup?.raid_group_id
@@ -323,7 +323,7 @@ export function RaidBannerCard({
                       {myGroup ? `Roster ${myGroup.group_number}` : 'Apuntado'}
                     </div>
                   </div>
-                ) : !isPast && currentCharacter ? (
+                ) : !isPast && currentUserId ? (
                   <button
                     onClick={(e) => { e.stopPropagation(); onSignUp(raid.id); }}
                     className="btn btn-primary btn-sm flex items-center gap-1.5"
@@ -332,7 +332,7 @@ export function RaidBannerCard({
                     <CheckCircle size={13} /> Apuntarse
                   </button>
                 ) : !isPast ? (
-                  <p className="text-[0.75rem] text-[#555]">Crea un personaje para apuntarte</p>
+                  <p className="text-[0.75rem] text-[#555]">Inicia sesión para apuntarte</p>
                 ) : null}
                 {isPast && raid.warcraft_logs_url && (
                   <a
