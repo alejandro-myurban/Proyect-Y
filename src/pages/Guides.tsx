@@ -177,6 +177,116 @@ const GUIDES: RaidGuide[] = [
       },
     ],
   },
+  {
+    raidType: 'serpentshrine',
+    bosses: [
+      {
+        name: 'Hydross el Inestable',
+        subtitle: 'Primer Boss · El Manantial Corrupto',
+        warning: 'Cada transición de fase (Nature → Shadow) requiere un tank diferente. Si el mismo tank lo mantiene al cruzar el umbral, el DoT de transición lo mata en segundos.',
+        tips: [
+          { role: 'tank', text: 'Dos tanks necesarios — uno para fase Nature (dentro del círculo frío) y otro para fase Shadow (fuera del círculo). Cuando Hydross cruza el umbral de temperatura cambia de fase: el segundo tank lo recoge al instante. Nunca cruces el umbral por error o resetea el aggro.' },
+          { role: 'healer', text: 'En cada transición aparecen 4 adds elementales — necesitan CC o kill rápido. El daño de raid en fase Shadow es más intenso. Dispel los DoTs de Nature en Shadow y viceversa si tienes el rol.' },
+          { role: 'dps', text: 'Para el DPS justo antes de cada transición para evitar morir por el reset de aggro. Mata los 4 adds de transición rápidamente antes de retomar el boss. Resistencia a Nature y Shadow recomendada en gear.' },
+        ],
+      },
+      {
+        name: 'El Acechador de las Profundidades',
+        subtitle: 'Segundo Boss · El Lago Central',
+        warning: 'Cuando castee Spout, TODOS al agua inmediatamente — cualquiera que quede en las plataformas durante la rotación muere al instante.',
+        tips: [
+          { role: 'tank', text: 'Tankea al Lurker en la plataforma central. Cuando aparezcan los adds subacuáticos (Coilfang Ambushers y Guardians), un off-tank los recoge en las plataformas laterales. Después de cada Spout vuelve a posición rápidamente.' },
+          { role: 'healer', text: 'El Geyser hace daño de AoE a quienes estén cerca del impacto — spread en las plataformas circulares. Prepara healing de raid tras cada Spout. Los adds también golpean fuerte a cualquiera desprotegido.' },
+          { role: 'dps', text: 'Cuando empiece el Spout (rotación de 360°), salta al agua hasta que termine. Los adds aparecen en las plataformas exteriores periódicamente — DPS de rango los gestiona desde el agua o plataformas. Vuelta al Lurker en cuanto los adds estén muertos.' },
+        ],
+      },
+      {
+        name: 'Leotheras el Ciego',
+        subtitle: 'Tercer Boss · La Guarida de la Bestia',
+        warning: 'Si el demonio interior (Shadow of Leotheras) llega a tocar a Leotheras antes de ser matado, inflige el 30% de la vida máxima del jugador como daño directo. Es wipe casi seguro si ocurre con varios jugadores.',
+        tips: [
+          { role: 'tank', text: 'Dos fases alternas: Humano (tanqueable) y Demonio (solo un Warlock/jugador con alta Shadow Resistance puede mantenerlo). En Whirlwind suelta el aggro y vuelve a cogerlo en cuanto regrese a la fase humana.' },
+          { role: 'healer', text: 'Durante Whirlwind Leotheras golpea aleatoriamente — healing de raid masivo. Los Demonic Portals que aparecen hacen daño moderado pero los jugadores marcados con Shadow of Leotheras son la prioridad.' },
+          { role: 'dps', text: 'Interrumpe Chaos Blast en fase Demonio — es imprescindible. Si recibes la marca de Shadow of Leotheras, tu demonio interior aparece: toda la raid hace focus en él hasta matarlo. Aleja al demonio de Leotheras en todo momento.' },
+        ],
+      },
+      {
+        name: 'Señor de los Abismos Karathress',
+        subtitle: 'Cuarto Boss · El Santuario de las Sirenas',
+        warning: 'Cada guardia que muere otorga a Karathress una habilidad permanente. No matéis a Karathress antes que a todos sus tres guardias o el orden de herencia os desbordará.',
+        tips: [
+          { role: 'tank', text: 'Necesitáis 4 tanks: uno para Karathress y uno para cada guardia (Sharkkis el Cazador, Tidalvess el Lanzador, Caribdis la Invocadora). Separad los cuatro en esquinas distintas para evitar que se encadenen los AoE.' },
+          { role: 'healer', text: 'Tidalvess aplica Frost Shock y venenos — dispelad venenos constantemente. Caribdis castea Tidal Surge (interrúmpelo o la raid vuela). El daño de raid aumenta progresivamente conforme Karathress hereda habilidades.' },
+          { role: 'dps', text: 'Orden de kill: Caribdis > Tidalvess > Sharkkis > Karathress. Interrumpe el Tidal Surge de Caribdis con máxima prioridad. No distraigáis DPS en Karathress hasta que los tres guardias estén muertos.' },
+        ],
+      },
+      {
+        name: 'Morogrim Mareawalker',
+        subtitle: 'Quinto Boss · La Cámara de las Mareas',
+        warning: 'Los Murlocs aparecen en oleadas grandes cada ~30 segundos. Si no se limpian con rapidez, abruman a la raid y es wipe.',
+        tips: [
+          { role: 'tank', text: 'Tank and spank en el centro de la sala. Cuando aparezcan los Murlocs mantente en el boss — los AoE DPS y un off-tank se encargan de las oleadas. El Earthquake hace knockback — posiciónate con la espalda a la pared.' },
+          { role: 'healer', text: 'Watery Grave teletransporta a 4 jugadores aleatorios y los deja con poca vida — cúralos inmediatamente al reaparecer. El Earthgraze es un DoT de raid que apila rápido — healing agresivo de raid durante las oleadas.' },
+          { role: 'dps', text: 'AoE DPS (Mage, Warlock, Paladin) se preparan para limpiar los Murlocs en cuanto aparezcan. Prioridad absoluta: limpiar la oleada antes de volver al boss. Los Murlocs matan a cualquier que los ignore.' },
+        ],
+      },
+      {
+        name: 'Lady Vashj',
+        subtitle: 'Boss Final · El Núcleo del Manantial',
+        warning: 'La Fase 2 es una de las mecánicas más complejas del TBC — 4 Tainted Cores deben recogerse y pasarse en cadena hasta desactivar los 4 Shield Generators. Si algún Coilfang Strider llega al centro, Vashj recupera vida.',
+        tips: [
+          { role: 'tank', text: 'Fase 1: Dos tanks rotan el veneno de Vashj (Forked Lightning duele). Fase 2: Tanks controlan los Naga Elite y los Coilfang Striders — los Striders son la mayor amenaza. Fase 3: Tank a Vashj alejado del grupo, resistencia a venenos es importante.' },
+          { role: 'healer', text: 'Fase 2 requiere healing de raid simultáneo con múltiples tipos de adds activos. En fase 3, cura agresiva al tank y dispel los encantamientos de viento que Vashj aplica. Guarda cooldowns de raid para el último 20%.' },
+          { role: 'dps', text: 'Fase 2: Mata los Tainted Elementals para obtener Tainted Cores. El jugador que lo recoge lo pasa en cadena humana hasta quien lo cliquee en un Shield Generator. Repite x4. Mata los Striders con prioridad total. Fase 3: DPS máximo a Vashj hasta el final.' },
+        ],
+      },
+    ],
+  },
+  {
+    raidType: 'tempestkeep',
+    bosses: [
+      {
+        name: "Al'ar",
+        subtitle: "Primer Boss · La Guarida del Fénix",
+        warning: "Cuando Al'ar muere por primera vez NO está muerto — renace de las llamas con vida completa. El DPS no puede bajar la guardia y los healers deben estar listos para la segunda vida.",
+        tips: [
+          { role: 'tank', text: "Fase 1: Dos tanks siguen a Al'ar de plataforma en plataforma (vuela entre las 4). Rota para el Melt Armor (reduce armadura en un 50%). Fase 2: Main tank en el centro, off-tank recoge los Ember of Al'ar que aparecen." },
+          { role: 'healer', text: "El Melt Armor se apila en el tank — cura agresiva en cuanto el debuff esté activo. Los Flame Buffets acumulan en toda la raid. En fase 2 el Dive Bomb cae aleatoriamente sobre jugadores — cura urgente al impactado." },
+          { role: 'dps', text: "Fase 1: DPS a Al'ar mientras vuela entre plataformas, sin caerse. Fase 2: Mata los Ember of Al'ar rápido para reducir el daño de raid. Cuando haga Dive Bomb aléjate del punto de impacto — el AoE en el suelo mata a quienes se queden encima." },
+        ],
+      },
+      {
+        name: 'Destructor de Vacío',
+        subtitle: 'Segundo Boss · La Nave Central',
+        warning: 'Los Arcane Orbs te persiguen desde atrás — nunca corras de frente ni hacia atrás. Muévete lateralmente para esquivarlos.',
+        tips: [
+          { role: 'tank', text: 'Tank and spank simple — es el boss más fácil de TK. Mantén al Void Reaver en el centro de la sala con la espalda a la pared para evitar knockback fuera de rango. No hay rotación de tanks necesaria.' },
+          { role: 'healer', text: 'Pounding hace daño masivo a toda la raid cada ~15 segundos — prepara healing de raid entre cada uno. Los jugadores que reciben orbes necesitan cura urgente. Es un encuentro de resistencia y mana management.' },
+          { role: 'dps', text: 'Los Arcane Orbs te siguen — muévete lateralmente (nunca hacia atrás) para esquivarlos. Si te alcanza un orbe recibes daño y silencio. Full DPS entre Poundings. Es un boss de puro throughput.' },
+        ],
+      },
+      {
+        name: "Alta Astróloga Solarian",
+        subtitle: 'Tercer Boss · El Observatorio Arcano',
+        warning: "El jugador marcado con Wrath of the Astromancer debe alejarse del grupo INMEDIATAMENTE — la explosión arcana mata a cualquiera en el radio si no hay separación.",
+        tips: [
+          { role: 'tank', text: 'Tankea a Solarian en el centro. Cuando se teleporte y aparezcan los Astromancer adds, un off-tank los recoge rápidamente — castean Holy Fire y Arcane Volley y son mortales si se ignoran.' },
+          { role: 'healer', text: 'Dispel el Arcane Vulnerability (aumenta daño arcano recibido x2) en los tanks con prioridad. Cura rápida al marcado con Wrath para que sobreviva antes de separarse. Los adds hacen mucho daño de AoE.' },
+          { role: 'dps', text: 'Cuando alguien reciba Wrath of the Astromancer, todos lejos de él inmediatamente. Mata los Astromancer adds rápido cuando Solarian se teleporte — interrumpe Holy Fire. Vuelta a Solarian en cuanto los adds estén muertos.' },
+        ],
+      },
+      {
+        name: "Príncipe Kael'thas Sunstrider",
+        subtitle: 'Boss Final · La Cámara del Príncipe del Sol',
+        warning: "Uno de los encuentros más complejos del TBC — 5 fases con mecánicas distintas. Un solo error en la Fase 3 (armas legendarias) puede limpiar a toda la raid al instante.",
+        tips: [
+          { role: 'tank', text: "Fase 1 (4 Guardias): Cuatro tanks para los guardias — priorizad a los más peligrosos. Fase 2 (4 Advisors): Un tank por advisor separados. Fase 3 (Armas): Recoge la Verdant Sphere y weapons defensivas. Fase 4 y 5: Tankea a Kael'thas alejado de los Advisors resucitados para evitar sus buffs." },
+          { role: 'healer', text: "Fase 2: Cada Advisor tiene habilidades únicas — Capernian lanza Conflagration (dispersa), Zerevor hace Arcane Volley (interrumpir). Fase 3 las armas flotan y pueden usarse — un healer puede recoger un arma de heal. Fase 5 es el mayor desafío: Kael castea Pyroblast y invoca Phoenixes simultáneamente." },
+          { role: 'dps', text: "Fase 1: Orden de kill — priorizad el que haga más daño de raid. Fase 2: Mata Advisors en orden: Thaladred > Telonicus > Zerevor > Capernian. Fase 3: Los DPS recogen las armas ofensivas que flotan y las usan. Fase 5: DPS máximo a Kael, destruye las Verdant Spheres que sueltan los Phoenixes antes de que reaparezcan." },
+        ],
+      },
+    ],
+  },
 ];
 
 /* ── Role badge component ── */
